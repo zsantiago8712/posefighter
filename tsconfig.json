@@ -1,0 +1,3 @@
+{
+  "extends": "@posefighter/config/tsconfig.base.json"
+}

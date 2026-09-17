@@ -1,0 +1,56 @@
+{
+  "name": "posefighter",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
+    "catalog": {
+      "zod": "^4.5.4",
+      "typescript": "^6.0.3",
+      "@types/node": "^26.4.1",
+      "varlock": "1.18.0",
+      "lucide-react": "^1.41.0",
+      "next-themes": "^0.4.6",
+      "react": "^19.2.8",
+      "react-dom": "^19.2.8",
+      "sonner": "^2.0.8",
+      "tailwindcss": "^4.3.3",
+      "convex": "^1.45.0",
+      "@types/react": "^19.2.18",
+      "@types/react-dom": "^19.2.7"
+    }
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "check-types": "turbo run check-types",
+    "dev:web": "turbo run dev -F web --",
+    "dev:server": "turbo run dev -F @posefighter/backend --",
+    "dev:setup": "turbo run dev:setup -F @posefighter/backend --",
+    "deploy:setup": "vercel link",
+    "dev:vercel": "vercel dev -L",
+    "env:preview": "tsx scripts/sync-vercel-env.ts preview",
+    "env:production": "tsx scripts/sync-vercel-env.ts production",
+    "deploy": "vercel deploy",
+    "deploy:prod": "vercel deploy --prod",
+    "deploy:check": "vercel deploy --dry",
+    "env:generate": "varlock codegen --path ./apps/web/",
+    "postinstall": "varlock codegen --path ./apps/web/"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@posefighter/config": "workspace:*",
+    "@types/node": "catalog:",
+    "tsx": "^4.23.13",
+    "turbo": "^2.10.12",
+    "typescript": "catalog:",
+    "varlock": "catalog:",
+    "vercel": "^59.11.7"
+  },
+  "packageManager": "bun@1.3.13"
+}
