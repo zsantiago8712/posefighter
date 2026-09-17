@@ -1,4 +1,6 @@
-# posefighter
+# posefighter — POSE FIGHT
+
+> **Hackathon team & AI agents: read [`AGENTS.md`](./AGENTS.md) first**, then your workstream doc in [`docs/agents/`](./docs/agents/). Coordination checklist: [`docs/HACKATHON.md`](./docs/HACKATHON.md).
 
 This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Start, Convex, and more.
 
