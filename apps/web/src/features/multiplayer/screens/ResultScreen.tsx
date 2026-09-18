@@ -22,8 +22,8 @@ export function ResultScreen({ code, token, room, lastResult }: RoomSession & { 
       : undefined;
 
   return (
-    <Screen className="justify-between gap-6">
-      <div className="flex flex-col items-center gap-1 pt-4">
+    <Screen className="justify-between gap-4">
+      <div className="flex w-full flex-col items-center gap-1 pt-2">
         <Sub>{iWon ? "victory" : "defeat"}</Sub>
         <Title size="xl">
           <span className={iWon ? "text-yellow-300" : "text-rose-500"}>{iWon ? "YOU WIN" : "K.O."}</span>
@@ -32,7 +32,7 @@ export function ResultScreen({ code, token, room, lastResult }: RoomSession & { 
 
       {winner && (
         <div className="flex w-full max-w-xs flex-col items-center gap-3">
-          <div className={`relative aspect-[3/4] w-full overflow-hidden rounded-3xl border-4 border-yellow-300 bg-gradient-to-br ${FIGHTER_META[winner.fighter].color} shadow-2xl shadow-yellow-400/40`}>
+          <div className={`relative aspect-[3/4] w-full max-h-[42dvh] overflow-hidden rounded-3xl border-4 border-yellow-300 bg-gradient-to-br ${FIGHTER_META[winner.fighter].color} shadow-2xl shadow-yellow-400/40`}>
             {winnerPhoto ? (
               <img src={winnerPhoto} alt={`${winner.nickname} winning pose`} className="h-full w-full object-cover" />
             ) : (

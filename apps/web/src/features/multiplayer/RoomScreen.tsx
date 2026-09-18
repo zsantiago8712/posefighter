@@ -99,7 +99,10 @@ export function RoomScreen({ code, fake, fresh = false }: { code: string; fake: 
 
   if (room.status === "LOBBY") return <LobbyScreen {...session} />;
 
-  if (room.status === "FINISHED" && (!latestResult || watched?.phase === "done" || watched?.round !== room.roundNumber)) {
+  // Result screen only AFTER the KO cinematic finished (or if there is nothing to play). Otherwise the arena
+  // keeps running: showing the result while `watched` catches up caused a one-frame "YOU WIN" flash mid-fight.
+  const koPlayed = watched?.round === room.roundNumber && watched.phase === "done";
+  if (room.status === "FINISHED" && (!latestResult || koPlayed)) {
     return <ResultScreen {...session} lastResult={latestResult ?? null} />;
   }
 

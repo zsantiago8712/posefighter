@@ -36,10 +36,10 @@ export function Screen({ children, className = "" }: { children: ReactNode; clas
 }
 
 export function Title({ children, size = "lg" }: { children: ReactNode; size?: "sm" | "md" | "lg" | "xl" }) {
-  const cls = { sm: "text-2xl", md: "text-4xl", lg: "text-5xl", xl: "text-7xl" }[size];
+  const cls = { sm: "text-2xl", md: "text-4xl", lg: "text-5xl", xl: "text-6xl sm:text-7xl" }[size];
   return (
     <h1
-      className={`arcade ${cls} text-center leading-none tracking-wide uppercase italic drop-shadow-[0_4px_0_rgba(0,0,0,0.8)]`}
+      className={`arcade ${cls} max-w-full px-3 text-center leading-[1.05] tracking-wide break-words uppercase italic drop-shadow-[0_4px_0_rgba(0,0,0,0.8)]`}
     >
       {children}
     </h1>
