@@ -4,7 +4,7 @@ import { playSfx, type SfxKey } from "../audio/sfx";
 import { type AnimationDefinition, type AnimationName, getCharacter } from "../characters";
 import { buildSequence } from "../choreography/buildSequence";
 import { type FightStep, type Side, TIMING, otherSide } from "../choreography/steps";
-import { GAME_HEIGHT, GAME_WIDTH, GROUND_Y, P1_HOME_X, P2_HOME_X } from "../config";
+import { type Layout, layoutOf } from "../config";
 import { FighterActor } from "../entities/FighterActor";
 import { Banner } from "../ui/Banner";
 import { damageNumber } from "../ui/DamageNumber";
@@ -50,6 +50,7 @@ export class FightScene extends Phaser.Scene {
   private actors!: Record<Side, FighterActor>;
   private bars!: Record<Side, HealthBar>;
   private banner!: Banner;
+  private layout!: Layout;
   private alive = false;
 
   constructor() {
@@ -66,20 +67,22 @@ export class FightScene extends Phaser.Scene {
       this.alive = false;
     });
     generateRuntimeTextures(this);
+    this.layout = layoutOf(this);
+    const L = this.layout;
     this.drawArena();
 
     const { player1, player2 } = this.result;
     const def1 = getCharacter(player1.fighter);
     const def2 = getCharacter(player2.fighter);
     this.actors = {
-      p1: new FighterActor(this, def1, "p1", P1_HOME_X, GROUND_Y),
-      p2: new FighterActor(this, def2, "p2", P2_HOME_X, GROUND_Y),
+      p1: new FighterActor(this, def1, "p1", L.p1X, L.groundY, L.fighterScale),
+      p2: new FighterActor(this, def2, "p2", L.p2X, L.groundY, L.fighterScale),
     };
     this.bars = {
-      p1: new HealthBar(this, 24, 96, false, player1.nickname, def1.displayName, def1.palette.primary, player1.hpBefore),
-      p2: new HealthBar(this, GAME_WIDTH - 24, 96, true, player2.nickname, def2.displayName, def2.palette.primary, player2.hpBefore),
+      p1: new HealthBar(this, 24, L.barY, false, player1.nickname, def1.displayName, def1.palette.primary, player1.hpBefore),
+      p2: new HealthBar(this, L.width - 24, L.barY, true, player2.nickname, def2.displayName, def2.palette.primary, player2.hpBefore),
     };
-    this.add.text(GAME_WIDTH / 2, 118, "VS", { fontFamily: '"Bangers", Impact, sans-serif', fontSize: "44px", color: "#ffd93b", stroke: "#000", strokeThickness: 6 })
+    this.add.text(L.width / 2, L.barY + 22, "VS", { fontFamily: '"Bangers", Impact, sans-serif', fontSize: "44px", color: "#ffd93b", stroke: "#000", strokeThickness: 6 })
       .setOrigin(0.5).setDepth(DEPTH.ui).setAngle(-8);
     this.banner = new Banner(this);
 
@@ -153,7 +156,7 @@ export class FightScene extends Phaser.Scene {
 
     // anticipation: glow + move name
     atk.flashTint(atk.def.palette.glow, 140);
-    this.banner.caption(atk.x, GROUND_Y - atk.height - 40, atk.def.moveNames[step.move], "#ffffff");
+    this.banner.caption(atk.x, this.layout.groundY - atk.height - 40, atk.def.moveNames[step.move], "#ffffff");
     if (heavy) {
       burst(this, atk.chest.x, atk.chest.y, atk.def.palette.glow, 12, 250);
     }
@@ -298,10 +301,10 @@ export class FightScene extends Phaser.Scene {
 
   private async clash(damageP1: number, damageP2: number): Promise<void> {
     const { p1, p2 } = this.actors;
-    const centerX = GAME_WIDTH / 2;
+    const centerX = this.layout.width / 2;
     const gap = (p1.width + p2.width) * 0.28;
-    this.banner.caption(p1.x, GROUND_Y - p1.height - 40, p1.def.moveNames[this.result.player1.move], "#ffffff");
-    this.banner.caption(p2.x, GROUND_Y - p2.height - 40, p2.def.moveNames[this.result.player2.move], "#ffffff");
+    this.banner.caption(p1.x, this.layout.groundY - p1.height - 40, p1.def.moveNames[this.result.player1.move], "#ffffff");
+    this.banner.caption(p2.x, this.layout.groundY - p2.height - 40, p2.def.moveNames[this.result.player2.move], "#ffffff");
     await this.delay(TIMING.anticipation);
     if (!this.alive) return;
     playSfx(this, "whoosh", 0.5);
@@ -340,7 +343,7 @@ export class FightScene extends Phaser.Scene {
 
   private async defend(side: Side, move: Move): Promise<void> {
     const actor = this.actors[side];
-    this.banner.caption(actor.x, GROUND_Y - actor.height - 40, actor.def.moveNames[move], "#cfcfcf");
+    this.banner.caption(actor.x, this.layout.groundY - actor.height - 40, actor.def.moveNames[move], "#cfcfcf");
     if (move === "BLOCK") {
       actor.play("block");
       this.showShield(actor);
@@ -367,7 +370,7 @@ export class FightScene extends Phaser.Scene {
     await this.realDelay(TIMING.koSlowMo);
     if (!this.alive) return;
     this.cameras.main.zoomTo(1, 350, "Quad.easeInOut", true);
-    this.cameras.main.pan(GAME_WIDTH / 2, GAME_HEIGHT / 2, 350, "Quad.easeInOut", true);
+    this.cameras.main.pan(this.layout.width / 2, this.layout.height / 2, 350, "Quad.easeInOut", true);
     await this.banner.show("K.O.!", { color: "#ff3b3b", size: 220, hold: 700 });
   }
 
@@ -375,42 +378,45 @@ export class FightScene extends Phaser.Scene {
     const actor = this.actors[winner];
     actor.play("victory");
     confetti(this, actor.def.palette.primary);
-    await this.banner.show(`${this.player(winner).nickname.toUpperCase()} WINS`, { color: "#ffd93b", size: 84, hold: 900, y: GAME_HEIGHT * 0.3 });
+    await this.banner.show(`${this.player(winner).nickname.toUpperCase()} WINS`, { color: "#ffd93b", size: 84, hold: 900, y: this.layout.height * 0.3 });
   }
 
   // --- arena ----------------------------------------------------------------
 
   private drawArena(): void {
+    const { width: W, height: H, groundY: G } = this.layout;
     const g = this.add.graphics().setDepth(DEPTH.bg);
     g.fillGradientStyle(0x120826, 0x120826, 0x4a1170, 0x4a1170, 1);
-    g.fillRect(0, 0, GAME_WIDTH, GROUND_Y);
+    g.fillRect(0, 0, W, G);
     // horizon glow
     g.fillGradientStyle(0x4a1170, 0x4a1170, 0xff2bd6, 0xff2bd6, 0, 0, 0.55, 0.55);
-    g.fillRect(0, GROUND_Y - 260, GAME_WIDTH, 260);
+    g.fillRect(0, G - 260, W, 260);
     // light beams
-    for (let i = 0; i < 5; i++) {
+    const beams = Math.round(W / 150);
+    for (let i = 0; i < beams; i++) {
       const x = 60 + i * 150;
       g.fillStyle(0xffffff, 0.05);
-      g.fillTriangle(x, 0, x + 40, 0, x + 200, GROUND_Y);
+      g.fillTriangle(x, 0, x + 40, 0, x + 200, G);
     }
     // floor
     g.fillStyle(0x0b0713, 1);
-    g.fillRect(0, GROUND_Y, GAME_WIDTH, GAME_HEIGHT - GROUND_Y);
+    g.fillRect(0, G, W, H - G);
     g.lineStyle(6, 0xff2bd6, 1);
-    g.lineBetween(0, GROUND_Y, GAME_WIDTH, GROUND_Y);
+    g.lineBetween(0, G, W, G);
     g.lineStyle(2, 0xff2bd6, 0.35);
     for (let i = 1; i < 8; i++) {
-      const y = GROUND_Y + i * i * 6;
-      g.lineBetween(0, y, GAME_WIDTH, y);
+      const y = G + i * i * 6;
+      if (y < H) g.lineBetween(0, y, W, y);
     }
-    for (let i = -4; i <= 10; i++) {
-      g.lineBetween(GAME_WIDTH / 2 + (i - 3) * 60, GROUND_Y, GAME_WIDTH / 2 + (i - 3) * 260, GAME_HEIGHT);
+    const spokes = Math.round(W / 60);
+    for (let i = -spokes; i <= spokes; i++) {
+      g.lineBetween(W / 2 + i * 60, G, W / 2 + i * 260, H);
     }
     // drifting embers
     if (this.textures.exists("particle")) {
       this.add.particles(0, 0, "particle", {
-        x: { min: 0, max: GAME_WIDTH },
-        y: { min: 200, max: GROUND_Y },
+        x: { min: 0, max: W },
+        y: { min: H * 0.15, max: G },
         speedY: { min: -30, max: -10 },
         scale: { start: 0.35, end: 0 },
         alpha: { start: 0.6, end: 0 },

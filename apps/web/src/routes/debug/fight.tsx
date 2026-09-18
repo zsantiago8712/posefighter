@@ -49,13 +49,16 @@ function DebugFightPage() {
   const result: CombatResult = fixture.result;
 
   return (
-    <div className="fixed inset-0 bg-black text-white" style={{ touchAction: "none" }}>
-      <FightPlayer key={run.id} result={result} onComplete={onComplete} />
+    <div className="fixed inset-0 flex flex-col bg-black text-white md:flex-row" style={{ touchAction: "none" }}>
+      {/* On desktop the player takes the remaining width and the panel becomes a right-hand column */}
+      <div className="relative min-h-0 min-w-0 flex-1">
+        <FightPlayer key={run.id} result={result} onComplete={onComplete} />
+      </div>
 
       <button
         type="button"
         onClick={() => setShowControls((s) => !s)}
-        className="absolute right-2 top-2 z-20 rounded-md bg-black/60 px-3 py-2 text-xs font-bold uppercase tracking-wide"
+        className="absolute right-2 top-2 z-20 rounded-md bg-black/60 px-3 py-2 text-xs font-bold uppercase tracking-wide md:hidden"
         style={{ top: "calc(env(safe-area-inset-top) + 8px)" }}
       >
         {showControls ? "HIDE" : "DEBUG"}
@@ -63,10 +66,11 @@ function DebugFightPage() {
 
       {showControls && (
         <div
-          className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-2 bg-black/70 p-3 backdrop-blur"
+          className="absolute inset-x-0 bottom-0 z-10 flex flex-col gap-2 bg-black/70 p-3 backdrop-blur md:static md:w-80 md:shrink-0 md:gap-3 md:border-l md:border-white/10 md:bg-neutral-950 md:p-4"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
         >
-          <div className="flex items-center justify-between text-xs font-mono text-white/70">
+          <h1 className="hidden text-lg font-black uppercase tracking-wider text-yellow-400 md:block">POSE FIGHT · /debug/fight</h1>
+          <div className="flex items-center justify-between gap-2 text-xs font-mono text-white/70 md:flex-col md:items-start">
             <span>
               #{run.id} · {fixture.label} · {result.player1.fighter} {result.player1.move} vs {result.player2.fighter} {result.player2.move}
             </span>
@@ -75,13 +79,13 @@ function DebugFightPage() {
               {lastDuration !== null ? ` · ${lastDuration.toFixed(1)}s` : ""}
             </span>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible">
             {FIXTURES.map((f, i) => (
               <button
                 key={f.label}
                 type="button"
                 onClick={() => start(i)}
-                className={`shrink-0 rounded-md px-4 text-sm font-bold uppercase ${i === run.index ? "bg-yellow-400 text-black" : "bg-white/15"}`}
+                className={`shrink-0 rounded-md px-4 text-sm font-bold uppercase md:w-[calc(50%-4px)] ${i === run.index ? "bg-yellow-400 text-black" : "bg-white/15"}`}
                 style={{ minHeight: 56 }}
               >
                 {f.label}

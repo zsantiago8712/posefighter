@@ -2,7 +2,6 @@ import type { CombatResult } from "@posefighter/backend/convex/shared/contracts"
 import * as Phaser from "phaser";
 import { loadSfx } from "../audio/sfx";
 import { getCharacter } from "../characters";
-import { GAME_HEIGHT, GAME_WIDTH } from "../config";
 import { arcadeText } from "../ui/text";
 import { generateRuntimeTextures } from "../vfx/effects";
 import { FightScene, type FightSceneData } from "./FightScene";
@@ -16,7 +15,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, "LOADING", arcadeText(64, "#ffffff")).setOrigin(0.5);
+    this.add.text(this.scale.width / 2, this.scale.height / 2, "LOADING", arcadeText(64, "#ffffff")).setOrigin(0.5);
     this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
       console.warn(`[game] asset failed to load, using fallback: ${file.key} (${file.url})`);
     });

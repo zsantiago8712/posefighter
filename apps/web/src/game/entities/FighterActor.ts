@@ -26,6 +26,7 @@ export class FighterActor {
     readonly side: Side,
     x: number,
     readonly groundY: number,
+    scaleMultiplier = 1,
   ) {
     this.dir = side === "p1" ? 1 : -1;
     this.homeX = x;
@@ -36,7 +37,7 @@ export class FighterActor {
       this.sprite = scene.add
         .sprite(0, 0, textureKey, 0)
         .setOrigin(0.5, def.assets.originY ?? 1)
-        .setScale(def.assets.scale ?? 1);
+        .setScale((def.assets.scale ?? 1) * scaleMultiplier);
       const artFacesRight = (def.assets.facing ?? "right") === "right";
       this.sprite.setFlipX(artFacesRight !== (this.dir === 1));
       if (def.assets.tint !== undefined) this.sprite.setTint(def.assets.tint);
@@ -46,7 +47,8 @@ export class FighterActor {
       this.placeholder = scene.add
         .rectangle(0, 0, PLACEHOLDER_W, PLACEHOLDER_H, def.palette.primary)
         .setOrigin(0.5, 1)
-        .setStrokeStyle(6, 0xffffff);
+        .setStrokeStyle(6, 0xffffff)
+        .setScale(scaleMultiplier);
       const label = scene.add.text(0, -PLACEHOLDER_H / 2, def.name, arcadeText(40)).setOrigin(0.5);
       const eye = scene.add.circle(this.dir * 55, -PLACEHOLDER_H + 70, 14, 0xffffff);
       this.container.add([this.placeholder, label, eye]);

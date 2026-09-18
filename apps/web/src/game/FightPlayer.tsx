@@ -29,7 +29,7 @@ async function ensureFont(): Promise<void> {
 }
 
 /**
- * Self-contained Phaser host. Phaser is imported client-side only, the game is destroyed on unmount,
+ * Self-contained Phaser host. Fills its parent (min 100dvh so a bare mount is still full-screen). Phaser is imported client-side only, the game is destroyed on unmount,
  * and remounting (next round) creates a fresh instance.
  */
 export function FightPlayer({ result, onComplete }: FightPlayerProps) {
@@ -63,7 +63,8 @@ export function FightPlayer({ result, onComplete }: FightPlayerProps) {
       ref={hostRef}
       style={{
         width: "100%",
-        height: "100dvh",
+        height: "100%",
+        minHeight: "100dvh",
         overflow: "hidden",
         touchAction: "none",
         overscrollBehavior: "none",
