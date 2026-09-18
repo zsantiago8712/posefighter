@@ -236,7 +236,7 @@ export class FightScene extends Phaser.Scene {
       hitStop(this, lethal ? 220 : heavy ? TIMING.hitStopHeavy : TIMING.hitStopLight);
       shake(this, lethal ? 0.035 : heavy ? 0.02 : 0.008, lethal ? 450 : heavy ? 300 : 180);
       flash(this, heavy ? glow : 0xffffff, lethal ? 0.95 : heavy ? 0.85 : 0.5, heavy ? 160 : 110);
-      if (heavy) zoomPunch(this, lethal ? 1.25 : 1.12, 90);
+      if (heavy) zoomPunch(this, lethal ? 1.12 : 1.07, 90);
       this.impactVfx(a.vfx, point, glow, heavy ? 1.4 : 1);
       playSfx(this, heavy ? (a.vfx === "explosion" ? "explosion" : "heavy") : "punch", 0.7);
       def.play("hit");
@@ -320,7 +320,7 @@ export class FightScene extends Phaser.Scene {
     hitStop(this, TIMING.hitStopHeavy);
     shake(this, 0.02, 320);
     flash(this, 0xffd93b, 0.85, 150);
-    zoomPunch(this, 1.12, 90);
+    zoomPunch(this, 1.07, 90);
     impactRing(this, point.x, point.y, 0xffd93b, 2);
     burst(this, point.x, point.y, 0xffd93b, 40, 750);
     playSfx(this, "heavy", 0.7);
@@ -362,7 +362,7 @@ export class FightScene extends Phaser.Scene {
   private async ko(loser: Side): Promise<void> {
     const actor = this.actors[loser];
     slowMo(this, 0.25, TIMING.koSlowMo);
-    this.cameras.main.zoomTo(1.2, 400, "Quad.easeOut", true);
+    this.cameras.main.zoomTo(1.1, 400, "Quad.easeOut", true);
     this.cameras.main.pan(actor.x, actor.chest.y, 400, "Quad.easeOut", true);
     actor.play("ko");
     flash(this, 0xff2020, 0.6, 400);
