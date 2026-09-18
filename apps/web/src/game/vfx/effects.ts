@@ -19,10 +19,52 @@ export function shake(scene: Phaser.Scene, intensity: number, duration = 200): v
   scene.cameras.main.shake(duration, intensity);
 }
 
-export function zoomPunch(scene: Phaser.Scene, zoom = 1.12, duration = 90): void {
+/**
+ * Snap the camera in, then ease back to 1. Uses a tween on camera.zoom instead of Camera.zoomTo:
+ * Phaser's zoom effect fires onUpdate on its last frame and then calls effectComplete(), which kills
+ * any zoomTo() started inside that callback — so the "zoom back" never ran and the camera stuck zoomed.
+ */
+export function zoomPunch(scene: Phaser.Scene, zoom = 1.07, duration = 90): void {
   const cam = scene.cameras.main;
-  cam.zoomTo(zoom, duration, "Quad.easeOut", true, (_cam, progress) => {
-    if (progress >= 1) cam.zoomTo(1, duration * 3, "Quad.easeInOut", true);
+  scene.tweens.killTweensOf(cam);
+  cam.setZoom(zoom);
+  scene.tweens.add({ targets: cam, zoom: 1, duration: duration * 3, ease: "Quad.easeOut", onComplete: () => cam.setZoom(1) });
+}
+
+/** Zoom + pan to a world point (tweened). Call resetCamera() to undo. */
+export function focusCamera(scene: Phaser.Scene, x: number, y: number, zoom: number, duration: number): void {
+  const cam = scene.cameras.main;
+  scene.tweens.killTweensOf(cam);
+  scene.tweens.add({
+    targets: cam,
+    zoom,
+    scrollX: x - cam.width / 2,
+    scrollY: y - cam.height / 2,
+    duration,
+    ease: "Quad.easeOut",
+  });
+}
+
+/** Always leaves the camera exactly at zoom 1, scroll (0,0). */
+export function resetCamera(scene: Phaser.Scene, duration = 0): void {
+  const cam = scene.cameras.main;
+  scene.tweens.killTweensOf(cam);
+  if (duration <= 0) {
+    cam.setZoom(1);
+    cam.setScroll(0, 0);
+    return;
+  }
+  scene.tweens.add({
+    targets: cam,
+    zoom: 1,
+    scrollX: 0,
+    scrollY: 0,
+    duration,
+    ease: "Quad.easeInOut",
+    onComplete: () => {
+      cam.setZoom(1);
+      cam.setScroll(0, 0);
+    },
   });
 }
 

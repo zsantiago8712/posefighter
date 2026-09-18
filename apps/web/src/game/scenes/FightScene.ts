@@ -16,9 +16,11 @@ import {
   explosion,
   fireProjectile,
   flash,
+  focusCamera,
   generateRuntimeTextures,
   hitStop,
   impactRing,
+  resetCamera,
   shake,
   slowMo,
   zoomPunch,
@@ -111,6 +113,7 @@ export class FightScene extends Phaser.Scene {
     }
     if (!this.alive) return;
     await this.delay(TIMING.resolve);
+    resetCamera(this);
     // contract guarantee: bars end exactly at hpAfter no matter what the choreography did
     this.bars.p1.setHp(this.result.player1.hpAfter, 200);
     this.bars.p2.setHp(this.result.player2.hpAfter, 200);
@@ -362,15 +365,13 @@ export class FightScene extends Phaser.Scene {
   private async ko(loser: Side): Promise<void> {
     const actor = this.actors[loser];
     slowMo(this, 0.25, TIMING.koSlowMo);
-    this.cameras.main.zoomTo(1.1, 400, "Quad.easeOut", true);
-    this.cameras.main.pan(actor.x, actor.chest.y, 400, "Quad.easeOut", true);
+    focusCamera(this, actor.x, actor.chest.y, 1.12, 120);
     actor.play("ko");
     flash(this, 0xff2020, 0.6, 400);
     playSfx(this, "ko", 0.8);
     await this.realDelay(TIMING.koSlowMo);
     if (!this.alive) return;
-    this.cameras.main.zoomTo(1, 350, "Quad.easeInOut", true);
-    this.cameras.main.pan(this.layout.width / 2, this.layout.height / 2, 350, "Quad.easeInOut", true);
+    resetCamera(this, 350);
     await this.banner.show("K.O.!", { color: "#ff3b3b", size: 220, hold: 700 });
   }
 
@@ -382,6 +383,38 @@ export class FightScene extends Phaser.Scene {
   }
 
   // --- arena ----------------------------------------------------------------
+
+  /** Raised fighting stage so the characters visibly stand on something. */
+  private drawStage(g: Phaser.GameObjects.Graphics): void {
+    const { width: W, groundY: G } = this.layout;
+    const inset = W * 0.06;
+    const topH = 26;
+    const frontH = 46;
+    // front face (darker, slightly wider at the bottom = perspective)
+    g.fillStyle(0x1a0f33, 1);
+    g.fillPoints(
+      [
+        { x: inset, y: G + topH },
+        { x: W - inset, y: G + topH },
+        { x: W - inset * 0.6, y: G + topH + frontH },
+        { x: inset * 0.6, y: G + topH + frontH },
+      ],
+      true,
+    );
+    // top face
+    g.fillStyle(0x2b1a55, 1);
+    g.fillRoundedRect(inset, G - 4, W - inset * 2, topH + 4, 6);
+    g.fillStyle(0xffffff, 0.06);
+    g.fillRect(inset + 8, G - 2, W - inset * 2 - 16, 6);
+    // neon rims
+    g.lineStyle(5, 0xff2bd6, 1);
+    g.strokeRoundedRect(inset, G - 4, W - inset * 2, topH + 4, 6);
+    g.lineStyle(3, 0x9ad0ff, 0.5);
+    g.lineBetween(inset * 0.6, G + topH + frontH, W - inset * 0.6, G + topH + frontH);
+    // center mark
+    g.lineStyle(3, 0xffd93b, 0.5);
+    g.lineBetween(W / 2, G - 2, W / 2, G + topH);
+  }
 
   private drawArena(): void {
     const { width: W, height: H, groundY: G } = this.layout;
@@ -403,6 +436,7 @@ export class FightScene extends Phaser.Scene {
     g.fillRect(0, G, W, H - G);
     g.lineStyle(6, 0xff2bd6, 1);
     g.lineBetween(0, G, W, G);
+    this.drawStage(g);
     g.lineStyle(2, 0xff2bd6, 0.35);
     for (let i = 1; i < 8; i++) {
       const y = G + i * i * 6;

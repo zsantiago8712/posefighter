@@ -15,6 +15,7 @@ export class FighterActor {
   readonly container: Phaser.GameObjects.Container;
   readonly sprite?: Phaser.GameObjects.Sprite;
   readonly placeholder?: Phaser.GameObjects.Rectangle;
+  private readonly shadow: Phaser.GameObjects.Ellipse;
   readonly homeX: number;
   /** +1 faces right (P1), -1 faces left (P2) */
   readonly dir: 1 | -1;
@@ -31,6 +32,9 @@ export class FighterActor {
     this.dir = side === "p1" ? 1 : -1;
     this.homeX = x;
     this.container = scene.add.container(x, groundY).setDepth(DEPTH.fighters);
+    // drop shadow grounds the sprite on the stage
+    this.shadow = scene.add.ellipse(0, 4, 160, 40, 0x000000, 0.45);
+    this.container.add(this.shadow);
 
     const textureKey = def.animations.idle.key;
     if (scene.textures.exists(textureKey)) {
@@ -53,6 +57,7 @@ export class FighterActor {
       const eye = scene.add.circle(this.dir * 55, -PLACEHOLDER_H + 70, 14, 0xffffff);
       this.container.add([this.placeholder, label, eye]);
     }
+    this.shadow.setSize(this.width * 1.15, Math.max(24, this.width * 0.26));
     this.playIdle();
   }
 

@@ -11,11 +11,16 @@ export function loadSfx(loader: Phaser.Loader.LoaderPlugin): void {
 }
 
 /** Never throws, never blocks: silently no-ops when audio is locked or the file failed to load. */
-export function playSfx(scene: Phaser.Scene, key: SfxKey | undefined, volume = 0.6, rate = 1): void {
+export function playSfx(scene: Phaser.Scene, key: SfxKey | undefined, volume = 0.7, rate = 1): void {
   if (!key) return;
   try {
     const cacheKey = `sfx-${key}`;
-    if (scene.sound.locked || !scene.cache.audio.exists(cacheKey)) return;
+    if (!scene.cache.audio.exists(cacheKey)) return;
+    if (scene.sound.locked) {
+      // still waiting for the first user gesture; ask Phaser to listen for it and skip this one
+      scene.sound.unlock();
+      return;
+    }
     scene.sound.play(cacheKey, { volume, rate });
   } catch {
     // audio is decoration; ignore

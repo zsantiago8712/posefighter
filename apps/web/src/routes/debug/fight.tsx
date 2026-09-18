@@ -22,6 +22,8 @@ function DebugFightPage() {
   const [completed, setCompleted] = useState(0);
   const [lastDuration, setLastDuration] = useState<number | null>(null);
   const [showControls, setShowControls] = useState(true);
+  // Mirrors the real flow: a tap ("TAP TO FIGHT") unlocks audio before the first Phaser mount.
+  const [started, setStarted] = useState(false);
   const playAllRef = useRef(playAll);
   playAllRef.current = playAll;
 
@@ -52,7 +54,22 @@ function DebugFightPage() {
     <div className="fixed inset-0 flex flex-col bg-black text-white md:flex-row" style={{ touchAction: "none" }}>
       {/* On desktop the player takes the remaining width and the panel becomes a right-hand column */}
       <div className="relative min-h-0 min-w-0 flex-1">
-        <FightPlayer key={run.id} result={result} onComplete={onComplete} />
+        {started ? (
+          <FightPlayer key={run.id} result={result} onComplete={onComplete} />
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setStarted(true);
+              start(run.index);
+            }}
+            className="flex h-full w-full flex-col items-center justify-center gap-4 bg-[#0a0614]"
+            style={{ minHeight: "100dvh" }}
+          >
+            <span className="text-6xl font-black uppercase italic tracking-tight text-yellow-400 drop-shadow-[0_6px_0_#000]">TAP TO FIGHT</span>
+            <span className="text-sm uppercase tracking-widest text-white/60">unlocks audio · {fixture.label}</span>
+          </button>
+        )}
       </div>
 
       <button
