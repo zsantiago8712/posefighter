@@ -2,20 +2,32 @@ import { useEffect, useState } from "react";
 
 const KEY = "posefight.playerToken";
 
-/** Stable anonymous identity per browser. Client-only; returns null during SSR / first paint. */
-export function usePlayerToken(): string | null {
+/**
+ * Anonymous identity per BROWSER TAB (sessionStorage): survives reloads in the same tab, but every new tab
+ * is a new player. That lets one PC play both sides for testing, and a shared /room link opened in a new tab
+ * joins as the second fighter instead of hijacking the host's seat.
+ */
+export function usePlayerToken(fresh = false): string | null {
   const [token, setToken] = useState<string | null>(null);
   useEffect(() => {
-    setToken(getOrCreatePlayerToken());
-  }, []);
+    // `fresh`: force a brand-new identity. Needed because Chrome COPIES sessionStorage into tabs opened via
+    // window.open, so "open player 2 in a new tab" would otherwise inherit player 1's token.
+    setToken(fresh ? resetPlayerToken() : getOrCreatePlayerToken());
+  }, [fresh]);
   return token;
 }
 
+export function resetPlayerToken(): string {
+  const t = crypto.randomUUID();
+  window.sessionStorage.setItem(KEY, t);
+  return t;
+}
+
 export function getOrCreatePlayerToken(): string {
-  let t = window.localStorage.getItem(KEY);
+  let t = window.sessionStorage.getItem(KEY);
   if (!t) {
     t = crypto.randomUUID();
-    window.localStorage.setItem(KEY, t);
+    window.sessionStorage.setItem(KEY, t);
   }
   return t;
 }

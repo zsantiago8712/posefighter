@@ -50,6 +50,15 @@ export function LobbyScreen({ code, token, room }: RoomSession) {
         <button type="button" onClick={share} className="text-xs font-bold tracking-widest text-white/50 underline uppercase">
           {copied ? "link copied ✓" : "share invite link"}
         </button>
+        {room.isHost && !opponent && (
+          <button
+            type="button"
+            onClick={() => window.open(`${link}?fresh=1`, "_blank")}
+            className="mt-1 rounded-full border border-white/20 px-3 py-1 text-[10px] font-bold tracking-widest text-white/60 uppercase"
+          >
+            🕹️ open player 2 in a new tab (same pc)
+          </button>
+        )}
       </div>
 
       <div className="flex w-full max-w-md flex-col gap-5">

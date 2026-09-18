@@ -19,9 +19,14 @@ import { ArcadeButton, Screen, Sub, Title } from "./ui";
  * Local state:   which round I have already watched (reveal + fight), so the same round
  *                doesn't replay, and FINISHED still shows the final round once.
  */
-export function RoomScreen({ code, fake }: { code: string; fake: boolean }) {
-  const token = usePlayerToken();
+export function RoomScreen({ code, fake, fresh = false }: { code: string; fake: boolean; fresh?: boolean }) {
+  const token = usePlayerToken(fresh);
   const navigate = useNavigate();
+
+  // Once the fresh token exists, drop `?fresh` from the URL so a reload keeps this seat.
+  useEffect(() => {
+    if (fresh && token) void navigate({ to: "/room/$code", params: { code }, search: { fake }, replace: true });
+  }, [fresh, token, code, fake, navigate]);
   const room = useQuery(api.rooms.getRoomView, token ? { code, token } : "skip");
   const joinRoom = useMutation(api.rooms.joinRoom);
   const readyForNextRound = useMutation(api.rounds.readyForNextRound);
