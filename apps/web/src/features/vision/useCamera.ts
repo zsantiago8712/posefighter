@@ -6,6 +6,15 @@ function stopStream(stream: MediaStream | null) {
   stream?.getTracks().forEach((t) => t.stop());
 }
 
+/** Widest field of view the device allows (only some phone cameras expose a zoom range). */
+async function zoomOut(stream: MediaStream) {
+  const track = stream.getVideoTracks()[0];
+  if (!track?.getCapabilities) return;
+  const caps = track.getCapabilities() as MediaTrackCapabilities & { zoom?: { min: number } };
+  if (caps.zoom === undefined) return;
+  await track.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as MediaTrackConstraintSet] }).catch(() => {});
+}
+
 function describeError(e: unknown): { status: CameraStatus; message: string } {
   const name = e instanceof DOMException ? e.name : "";
   if (name === "NotAllowedError" || name === "PermissionDeniedError" || name === "SecurityError") {
@@ -47,6 +56,7 @@ export function useCamera(enabled = true) {
           stopStream(stream);
           return;
         }
+        await zoomOut(stream);
         const video = videoRef.current;
         if (!video) throw new Error("Video element not mounted.");
         video.srcObject = stream;

@@ -90,11 +90,16 @@ function LiveTab() {
   };
 
   const { camera, model } = live;
+  const aspect = live.frame && live.frame.width > 0 ? `${live.frame.width} / ${live.frame.height}` : "3 / 4";
 
   return (
-    <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,420px)_1fr]">
+    <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,560px)_1fr]">
       <div>
-        <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-neutral-900" onPointerDown={camera.play}>
+        <div
+          className="relative w-full overflow-hidden rounded-xl bg-neutral-900"
+          style={{ aspectRatio: aspect }}
+          onPointerDown={camera.play}
+        >
           <video
             ref={live.videoRef}
             autoPlay
