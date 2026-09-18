@@ -46,8 +46,8 @@ export class HealthBar {
   }
 
   private applyWidth(rect: Phaser.GameObjects.Rectangle, hp: number): void {
-    rect.width = Math.max(0, (hp / MAX_HP) * BAR_W);
-    // keep origin edge fixed
+    // setSize (not .width) so the Shape geometry actually redraws; origin keeps the outer edge fixed
+    rect.setSize(Math.max(0, (hp / MAX_HP) * BAR_W), BAR_H);
     rect.setOrigin(this.mirrored ? 1 : 0, 0);
   }
 

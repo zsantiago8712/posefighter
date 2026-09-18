@@ -243,7 +243,7 @@ export class FighterActor {
   /** Dodge: hop back with ghosts, then return. Resolves when back home. */
   async dodge(): Promise<void> {
     this.play("dodge");
-    const away = this.homeX - this.dir * 150;
+    const away = this.homeX - this.dir * 110;
     await this.dashTo(away, 180);
     await new Promise<void>((r) => this.scene.time.delayedCall(220, () => r()));
     await this.moveTo(this.homeX, 220);
