@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 
+import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { generateRoomCode, normalizeRoomCode } from "./lib/roomCode";
@@ -241,7 +242,8 @@ export const rematch = mutation({
     const players = await getRoomPlayers(ctx, room._id);
     if (!findPlayerByToken(players, args.token)) throw new Error("NOT_IN_ROOM");
 
-    // Clean previous rounds & submissions so round numbers restart cleanly.
+    // Privacy: drop the previous battle's photos right away, then clean rounds & submissions.
+    await ctx.scheduler.runAfter(0, internal.photos.purgeRoomPhotos, { roomId: room._id });
     const rounds = await ctx.db
       .query("rounds")
       .withIndex("by_room_round", (q) => q.eq("roomId", room._id))

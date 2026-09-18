@@ -43,12 +43,12 @@ export function BattleScreen({
 
   return (
     <main
-      className="relative grid h-dvh w-full grid-cols-1 overflow-hidden bg-[#0a0614] text-white lg:grid-cols-[minmax(0,1fr)_400px]"
+      className="relative flex h-dvh w-full flex-col overflow-hidden bg-[#0a0614] text-white lg:grid lg:grid-cols-[minmax(0,1fr)_400px]"
       style={{ touchAction: "none", overscrollBehavior: "none" }}
       onPointerDown={unlockAudio}
     >
-      {/* ARENA */}
-      <section className="relative min-h-0 overflow-hidden">
+      {/* ARENA — on phones it takes the top band; FightPlayer's own min-height:100dvh is overridden so it fits. */}
+      <section className="relative min-h-0 flex-1 overflow-hidden [&>div]:h-full! [&>div]:min-h-0!">
         <ArenaErrorBoundary fallback={<FightSummaryFallback result={arenaResult} onComplete={onFightComplete} />}>
           <FightPlayer result={arenaResult} onComplete={onFightComplete} />
         </ArenaErrorBoundary>
@@ -67,11 +67,35 @@ export function BattleScreen({
           )}
         </aside>
       ) : (
-        <div className="absolute right-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] w-[52vw] max-w-[260px] overflow-hidden rounded-2xl border-2 border-white/60 shadow-2xl" style={{ aspectRatio: "3 / 4" }}>
-          <SidePanel session={session} fake={fake} panel={panel} compact />
+        <div className="h-[34dvh] shrink-0 border-t border-white/15 bg-[#09090b] pb-[env(safe-area-inset-bottom)]">
+          <PhoneDock session={session} fake={fake} panel={panel} />
         </div>
       )}
     </main>
+  );
+}
+
+/** Phone bottom dock: [camera 3:4 | pose legend] while posing, two photos side by side during the fight. */
+function PhoneDock({ session, fake, panel }: { session: RoomSession; fake: boolean; panel: BattlePanel }) {
+  const { room } = session;
+  const me = room.me!;
+  if (panel.kind === "capture" && !fake) {
+    return (
+      <div className="flex h-full w-full gap-2 p-2">
+        <div className="h-full shrink-0 overflow-hidden rounded-xl border border-white/30" style={{ aspectRatio: "3 / 4" }}>
+          <CapturePanel {...session} fake={false} compact />
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="arcade mb-1 text-center text-xs tracking-widest text-yellow-300 uppercase">Round {room.roundNumber}</div>
+          <PoseLegend fighter={me.fighter} />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="h-full w-full">
+      <SidePanel session={session} fake={fake} panel={panel} compact horizontal />
+    </div>
   );
 }
 
@@ -88,10 +112,22 @@ function useIsDesktop(): boolean {
   return desktop;
 }
 
-function SidePanel({ session, fake, panel, compact = false }: { session: RoomSession; fake: boolean; panel: BattlePanel; compact?: boolean }) {
+function SidePanel({
+  session,
+  fake,
+  panel,
+  compact = false,
+  horizontal = false,
+}: {
+  session: RoomSession;
+  fake: boolean;
+  panel: BattlePanel;
+  compact?: boolean;
+  horizontal?: boolean;
+}) {
   const { room } = session;
   if (panel.kind === "capture") return <CapturePanel {...session} fake={fake} compact={compact} />;
-  if (panel.kind === "fight") return <FightPanel result={panel.result} compact={compact} />;
+  if (panel.kind === "fight") return <FightPanel result={panel.result} compact={compact} horizontal={horizontal} />;
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 bg-[radial-gradient(ellipse_at_top,#1e1b4b_0%,#09090b_60%)] p-4 text-center">
       <h2 className={`arcade ${compact ? "text-xl" : "text-3xl"} uppercase italic`}>Round {room.roundNumber} done</h2>
@@ -106,8 +142,36 @@ function SidePanel({ session, fake, panel, compact = false }: { session: RoomSes
 }
 
 /** While the cinematic plays: both REAL pose photos + moves. The "ridiculous photo vs epic fight" moment. */
-function FightPanel({ result, compact }: { result: CombatResult; compact: boolean }) {
+function FightPanel({ result, compact, horizontal = false }: { result: CombatResult; compact: boolean; horizontal?: boolean }) {
   const players = [result.player1, result.player2];
+  if (horizontal) {
+    return (
+      <div className="flex h-full w-full items-stretch gap-2 bg-[radial-gradient(ellipse_at_top,#1e1b4b_0%,#09090b_60%)] p-2">
+        {players.map((p, i) => {
+          const fm = FIGHTER_META[p.fighter];
+          const mm = MOVE_META[p.move];
+          return (
+            <div key={p.playerId} className={`relative min-w-0 flex-1 overflow-hidden rounded-xl border-2 border-white/70 bg-gradient-to-br ${fm.color}`}>
+              {p.posePhotoUrl ? (
+                <img src={p.posePhotoUrl} alt={`${p.nickname} pose`} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-5xl">{fm.emoji}</div>
+              )}
+              <div className={`absolute top-1 ${i === 0 ? "left-1" : "right-1"} rounded-md bg-black/60 px-2 py-0.5`}>
+                <span className="arcade text-sm uppercase italic">{p.nickname}</span>
+              </div>
+              <div className={`absolute inset-x-0 bottom-0 ${mm.color} px-1 py-1 text-center text-black`}>
+                <div className="arcade text-base leading-none uppercase italic">
+                  {mm.emoji} {MOVE_NAMES[p.fighter][p.move]}
+                </div>
+                <div className="text-[9px] font-bold tracking-widest opacity-75">POWER {p.power}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
   return (
     <div className={`flex h-full flex-col justify-center gap-3 bg-[radial-gradient(ellipse_at_top,#1e1b4b_0%,#09090b_60%)] ${compact ? "p-2" : "p-4"}`}>
       {!compact && (

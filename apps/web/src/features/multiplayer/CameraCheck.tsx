@@ -88,6 +88,10 @@ export function CameraCheck({ compact = false }: { compact?: boolean }) {
           {detail && bad && <p className="truncate font-mono text-[9px] text-white/40">{detail}</p>}
         </div>
       </div>
+      <p className="text-center text-[10px] leading-snug tracking-wide text-white/50">
+        🔒 Camera required to play. Photos are used only to read your pose and shown to your opponent during the
+        match, then <span className="text-white/80">deleted automatically</span>. No video is recorded and nothing is kept.
+      </p>
       {state !== "ok" && (
         <ArcadeButton onClick={() => void enable()} disabled={state === "requesting"} className={compact ? "min-h-12 text-base" : ""}>
           {state === "idle" ? "📷 Enable camera" : "Try again"}

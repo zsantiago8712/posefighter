@@ -56,6 +56,11 @@ export function RoomScreen({ code, fake, fresh = false }: { code: string; fake: 
     if (rounds && rounds.length === 0 && watched) setWatched(null); // rematch
   }, [room, latestResult, rounds, watched]);
 
+  // Intro result (before round 1) must be referentially stable: FightPlayer re-creates the whole Phaser game
+  // whenever `result` changes, so a fresh object per render made the arena flash on every room update.
+  const introKey = room ? room.players.map((p) => `${p.playerId}:${p.fighter}:${p.nickname}`).join("|") : "";
+  const stableIntro = useMemo(() => (room ? introResult(room) : null), [introKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const onFightComplete = useCallback(async () => {
     if (!token || !room || !watched || watched.phase !== "fight") return;
     if (room.status === "FINISHED") {
@@ -106,7 +111,7 @@ export function RoomScreen({ code, fake, fresh = false }: { code: string; fake: 
     return <ResultScreen {...session} lastResult={latestResult ?? null} />;
   }
 
-  const arenaResult: CombatResult = latestResult ?? introResult(room);
+  const arenaResult: CombatResult = latestResult ?? stableIntro ?? introResult(room);
 
   let panel: BattlePanel;
   if (room.status === "IN_ROUND") {

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 
+import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { resolveRound, type ResolveInputPlayer } from "./combat/resolve";
@@ -9,6 +10,8 @@ import type { CombatResult } from "./shared/contracts";
 
 /** Host may force the next round after this many ms of waiting on the other player. */
 export const FORCE_NEXT_ROUND_AFTER_MS = 20_000;
+/** Pose photos are deleted this long after a battle ends. */
+export const PHOTO_TTL_AFTER_KO_MS = 5 * 60_000;
 
 /**
  * Submit my move for the current round. Idempotent per (room, round, player).
@@ -92,6 +95,8 @@ export const submitMove = mutation({
     if (result.outcome === "KO" && result.winnerPlayerId) {
       const winner = players.find((p) => p._id === result.winnerPlayerId);
       await ctx.db.patch(room._id, { status: "FINISHED", winnerPlayerId: winner?._id });
+      // Privacy: photos are only for the match. Give the result screen a few minutes, then wipe them.
+      await ctx.scheduler.runAfter(PHOTO_TTL_AFTER_KO_MS, internal.photos.purgeRoomPhotos, { roomId: room._id });
     } else {
       await ctx.db.patch(room._id, { status: "REVEAL" });
     }
