@@ -194,9 +194,10 @@ function CaptureScreenInner({
             {count}
           </div>
           <p className="mt-2 text-2xl font-black tracking-widest uppercase">Strike a pose</p>
-          {live.hint ? <Hint text={live.hint} /> : null}
         </Center>
       ) : null}
+
+      {phase === "countdown" || phase === "pose" ? <LiveMoveBadge current={live.smoothed} hint={live.hint} /> : null}
 
       {phase === "pose" ? (
         <>
@@ -242,10 +243,32 @@ function Center({ children, className = "" }: { children: React.ReactNode; class
   );
 }
 
-function Hint({ text }: { text: string }) {
+/** What the classifier currently reads, so the player knows which move will lock when the timer ends. */
+function LiveMoveBadge({ current, hint }: { current: Classification | null; hint: string | null }) {
+  const pct = current ? Math.round(current.confidence * 100) : 0;
+  const solid = current !== null && !current.fallback && current.confidence >= 0.5;
   return (
-    <div className="mt-6 rounded-full bg-orange-500/90 px-4 py-2 text-sm font-bold tracking-wide text-black uppercase">
-      {text}
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 pt-12 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+      {hint ? (
+        <div className="rounded-full bg-orange-500/90 px-4 py-2 text-sm font-bold tracking-wide text-black uppercase">{hint}</div>
+      ) : (
+        <>
+          <div className="text-xs font-bold tracking-[0.3em] text-white/60 uppercase">Your move</div>
+          <div
+            className={`text-5xl font-black italic tracking-tighter uppercase transition-colors ${
+              solid ? "text-yellow-300 drop-shadow-[0_0_24px_rgba(250,204,21,0.8)]" : "text-white/50"
+            }`}
+          >
+            {current ? MOVE_LABEL[current.move] : "…"}
+          </div>
+          <div className="h-2 w-48 overflow-hidden rounded-full bg-white/15">
+            <div className={`h-full transition-all ${solid ? "bg-yellow-300" : "bg-orange-400"}`} style={{ width: `${pct}%` }} />
+          </div>
+          <div className="font-mono text-sm text-white/80">
+            {pct}% · POWER {current?.power ?? "—"}
+          </div>
+        </>
+      )}
     </div>
   );
 }
