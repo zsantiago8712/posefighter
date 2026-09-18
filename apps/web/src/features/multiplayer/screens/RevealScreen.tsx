@@ -2,7 +2,7 @@ import type { CombatPlayerResult, CombatResult } from "@posefighter/backend/conv
 import { useEffect, useState } from "react";
 
 import { FIGHTER_META, MOVE_META, MOVE_NAMES, Screen, Sub, Title } from "../ui";
-import { isAttackMove } from "./FightScreen";
+import { isAttackMove } from "./FightSummaryFallback";
 
 const HOLD_MS = 2600;
 
@@ -18,15 +18,12 @@ export function RevealScreen({ result, onDone }: { result: CombatResult; onDone:
     return () => clearTimeout(t0);
   }, []);
 
+  // 3·2·1 then stop at 0 and wait for a TAP: that user gesture unlocks audio for the Phaser cinematic.
   useEffect(() => {
-    if (count === null) return;
-    if (count === 0) {
-      const t = setTimeout(onDone, 700);
-      return () => clearTimeout(t);
-    }
+    if (count === null || count === 0) return;
     const t = setTimeout(() => setCount(count - 1), 800);
     return () => clearTimeout(t);
-  }, [count, onDone]);
+  }, [count]);
 
   return (
     <Screen className="justify-between gap-4" >
@@ -42,7 +39,7 @@ export function RevealScreen({ result, onDone }: { result: CombatResult; onDone:
         <PoseCard p={result.player2} />
       </div>
 
-      <div className="flex h-32 items-center justify-center" onClick={() => count !== null && count > 0 && setCount(0)}>
+      <div className="flex h-32 w-full max-w-md items-center justify-center" onClick={() => count !== null && count > 0 && setCount(0)}>
         {count === null ? (
           <p className="arcade animate-pulse text-2xl text-white/60 italic">get ready…</p>
         ) : count > 0 ? (
@@ -50,7 +47,13 @@ export function RevealScreen({ result, onDone }: { result: CombatResult; onDone:
             {count}
           </span>
         ) : (
-          <span className="arcade text-7xl leading-none text-rose-500 italic drop-shadow-[0_0_30px_rgba(244,63,94,0.8)]">FIGHT!</span>
+          <button
+            type="button"
+            onClick={onDone}
+            className="arcade w-full animate-pulse rounded-2xl bg-gradient-to-b from-rose-500 to-red-700 py-4 text-6xl leading-none text-white italic shadow-[0_8px_0_#4c0519] drop-shadow-[0_0_30px_rgba(244,63,94,0.8)] select-none active:translate-y-1"
+          >
+            TAP TO FIGHT!
+          </button>
         )}
       </div>
     </Screen>

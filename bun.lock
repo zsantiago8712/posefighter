@@ -33,7 +33,7 @@
         "lucide-react": "catalog:",
         "next-themes": "catalog:",
         "nitro": "3.0.260903-beta",
-        "phaser": "3",
+        "phaser": "^3.90.0",
         "react": "catalog:",
         "react-dom": "catalog:",
         "sonner": "catalog:",
