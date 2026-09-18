@@ -11,9 +11,9 @@ import type { RoomSession } from "../types";
 import { MOVE_META, MOVE_NAMES, Sub } from "../ui";
 
 /** If the camera never produces a result (permission denied, model failed, no video) we roll a random move. */
-const CAPTURE_SAFETY_MS = (COUNTDOWN_SECONDS + 9) * 1000;
+const CAPTURE_SAFETY_MS = (COUNTDOWN_SECONDS + 17) * 1000;
 /** Below this confidence the classifier basically guessed; a random move is fairer than a silent BLOCK. */
-const MIN_CONFIDENCE = 0.45;
+const MIN_CONFIDENCE = 0.3; // vision reports 0.2 when nobody is visible
 
 /**
  * The camera side of the battle screen. Mounted while the room is IN_ROUND.

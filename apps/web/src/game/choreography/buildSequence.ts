@@ -29,6 +29,9 @@ function pickAttacker(result: CombatResult): Side {
 
 /** Pure: CombatResult → ordered presentation steps. No Phaser types. */
 export function buildSequence(result: CombatResult): FightStep[] {
+  // roundNumber 0 = "intro": MULTIPLAYER mounts the arena before round 1 so both fighters are on stage.
+  // Nothing has happened yet → no banners, no moves, just idle.
+  if (result.roundNumber === 0) return [];
   const steps: FightStep[] = [
     { kind: "banner", text: `ROUND ${result.roundNumber}`, color: "#ffffff" },
     { kind: "banner", text: "FIGHT!", color: "#ffd93b" },

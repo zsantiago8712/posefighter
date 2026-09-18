@@ -45,6 +45,7 @@ function CaptureScreenInner({
   const [count, setCount] = useState(countdownSeconds);
   const [result, setResult] = useState<Classification | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const firedRef = useRef(false);
   const readyRef = useRef(false);
   const errorRef = useRef<string | null>(null);
@@ -101,15 +102,11 @@ function CaptureScreenInner({
         }
         if (cancelled) return;
         setResult(classification);
+        setPhotoBlob(photo);
         setPhotoUrl(URL.createObjectURL(photo));
         setPhase("locked");
-        timers.push(
-          window.setTimeout(() => {
-            if (cancelled || firedRef.current) return;
-            firedRef.current = true;
-            onCapture({ pose: toPoseResult(classification), photo });
-          }, t.lockedDisplayMs),
-        );
+        // NOTE: onCapture is fired from the "locked" effect below. Firing it from a timer here doesn't work:
+        // setPhase("locked") re-runs this effect, whose cleanup would cancel that timer → onCapture never fires.
       }, t.poseHoldMs),
     );
 
@@ -117,7 +114,19 @@ function CaptureScreenInner({
       cancelled = true;
       timers.forEach((id) => clearTimeout(id));
     };
-  }, [phase, live.videoRef, live.getSmoothed, onCapture]);
+  }, [phase, live.videoRef, live.getSmoothed]);
+
+  // Locked: show the snapshot + move briefly, then hand the result to the parent exactly once.
+  useEffect(() => {
+    if (phase !== "locked" || !result || !photoBlob || firedRef.current) return;
+    const t = getThresholds();
+    const id = window.setTimeout(() => {
+      if (firedRef.current) return;
+      firedRef.current = true;
+      onCapture({ pose: toPoseResult(result), photo: photoBlob });
+    }, t.lockedDisplayMs);
+    return () => clearTimeout(id);
+  }, [phase, result, photoBlob, onCapture]);
 
   useEffect(() => {
     return () => {
