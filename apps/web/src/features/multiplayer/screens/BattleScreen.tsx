@@ -67,7 +67,7 @@ export function BattleScreen({
           )}
         </aside>
       ) : (
-        <div className="absolute right-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] w-[44vw] max-w-[220px] overflow-hidden rounded-2xl border-2 border-white/60 shadow-2xl" style={{ aspectRatio: "3 / 4" }}>
+        <div className="absolute right-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] w-[52vw] max-w-[260px] overflow-hidden rounded-2xl border-2 border-white/60 shadow-2xl" style={{ aspectRatio: "3 / 4" }}>
           <SidePanel session={session} fake={fake} panel={panel} compact />
         </div>
       )}

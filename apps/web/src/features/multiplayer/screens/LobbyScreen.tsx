@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { unlockAudio } from "@/game";
 
+import { CameraCheck } from "../CameraCheck";
 import { PoseGuide } from "../PoseGuide";
 import type { RoomSession } from "../types";
 import { FIGHTER_META, Screen, Sub, TextInput } from "../ui";
@@ -123,6 +124,8 @@ export function LobbyScreen({ code, token, room }: RoomSession) {
             </div>
           </>
         )}
+
+        <CameraCheck />
 
         {me && <PoseGuide fighter={me.fighter} />}
 
