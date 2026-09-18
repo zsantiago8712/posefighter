@@ -12,8 +12,8 @@ import { MOVE_META, MOVE_NAMES, Sub } from "../ui";
 
 /** If the camera never produces a result (permission denied, model failed, no video) we roll a random move. */
 const CAPTURE_SAFETY_MS = (COUNTDOWN_SECONDS + 17) * 1000;
-/** Below this confidence the classifier basically guessed; a random move is fairer than a silent BLOCK. */
-const MIN_CONFIDENCE = 0.3; // vision reports 0.2 when nobody is visible
+/** Below this confidence we show a small "best guess" note next to the locked move. */
+const LOW_CONFIDENCE = 0.3;
 
 /**
  * The camera side of the battle screen. Mounted while the room is IN_ROUND.
@@ -80,14 +80,12 @@ export function CapturePanel({ code, token, room, fake, compact = false }: RoomS
     [me.nickname, submit],
   );
 
+  // Always trust the classifier's move (the player saw it on screen at snapshot time). Low confidence only
+  // gets a note; random moves are reserved for camera errors / timeouts.
   const handleCapture = useCallback(
     (output: CaptureOutput) => {
-      if (output.pose.confidence < MIN_CONFIDENCE) {
-        const move = randomMove();
-        void submit({ ...output, pose: { ...output.pose, move } }, `Couldn't read your pose → random: ${MOVE_META[move].label}`);
-        return;
-      }
-      void submit(output);
+      const why = output.pose.confidence < LOW_CONFIDENCE ? "Pose was hard to read — used best guess" : undefined;
+      void submit(output, why);
     },
     [submit],
   );
