@@ -1,62 +1,18 @@
 import { MOVES, type Fighter, type Move } from "@posefighter/backend/convex/shared/contracts";
 
+import { POSE_ICON_PATHS } from "./poseIcons";
 import { MOVE_META, MOVE_NAMES, Sub } from "./ui";
 
 /**
- * Stick-figure examples of the five poses (mirrors the rules in features/vision/thresholds.ts).
- * Pure inline SVG: no assets, no licenses, crisp at any size.
+ * Pose icons (Google Material Symbols, Apache 2.0): a person doing roughly the pose the classifier expects.
+ *   SPECIAL → sports_gymnastics (arms up) · PUNCH → emoji_people (arm out) · HEAVY → sports_martial_arts
+ *   DODGE → directions_run · BLOCK → shield_person
  */
 export function PoseFigure({ move, size = 64, color = "currentColor" }: { move: Move; size?: number; color?: string }) {
-  const s = { stroke: color, strokeWidth: 6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
-  // Canvas 100×120. Head ~ (50,18). Shoulders y=38, hips y=72, feet y=112.
-  const body = {
-    PUNCH: (
-      <>
-        <circle cx="50" cy="18" r="10" {...s} />
-        <path d="M50 28 V72" {...s} />
-        <path d="M50 40 L14 40" {...s} /> {/* extended arm */}
-        <path d="M50 42 L62 62 L54 74" {...s} /> {/* guard arm */}
-        <path d="M50 72 L36 112 M50 72 L66 112" {...s} />
-      </>
-    ),
-    BLOCK: (
-      <>
-        <circle cx="50" cy="18" r="10" {...s} />
-        <path d="M50 28 V72" {...s} />
-        <path d="M50 40 L30 48 L62 50" {...s} /> {/* crossed arms */}
-        <path d="M50 40 L70 48 L38 50" {...s} />
-        <path d="M50 72 L38 112 M50 72 L62 112" {...s} />
-      </>
-    ),
-    DODGE: (
-      <>
-        <circle cx="26" cy="24" r="10" {...s} />
-        <path d="M32 33 L52 72" {...s} /> {/* leaning torso */}
-        <path d="M36 42 L14 58 M38 44 L58 46" {...s} />
-        <path d="M52 72 L40 112 M52 72 L70 112" {...s} />
-      </>
-    ),
-    HEAVY_ATTACK: (
-      <>
-        <circle cx="50" cy="18" r="10" {...s} />
-        <path d="M50 28 V70" {...s} />
-        <path d="M50 40 L10 34" {...s} /> {/* long strike */}
-        <path d="M50 40 L84 52" {...s} /> {/* other arm out */}
-        <path d="M50 70 L22 112 M50 70 L78 112" {...s} /> {/* wide stance */}
-      </>
-    ),
-    SPECIAL: (
-      <>
-        <circle cx="50" cy="26" r="10" {...s} />
-        <path d="M50 36 V74" {...s} />
-        <path d="M50 44 L30 20 L26 4 M50 44 L70 20 L74 4" {...s} /> {/* hands over head */}
-        <path d="M50 74 L38 112 M50 74 L62 112" {...s} />
-      </>
-    ),
-  }[move];
+  const icon = POSE_ICON_PATHS[move];
   return (
-    <svg viewBox="0 0 100 120" width={size} height={size * 1.2} aria-label={`${move} pose`} role="img">
-      {body}
+    <svg viewBox="0 -960 960 960" width={size} height={size} aria-label={`${move} pose`} role="img">
+      <path d={icon.d} fill={color} />
     </svg>
   );
 }
@@ -75,7 +31,7 @@ export function PoseLegend({ fighter }: { fighter: Fighter }) {
     <div className="flex flex-col gap-1.5">
       {MOVES.map((m) => (
         <div key={m} className={`flex items-center gap-2 rounded-lg ${MOVE_META[m].color} px-2 py-1 text-black`}>
-          <PoseFigure move={m} size={22} />
+          <PoseFigure move={m} size={26} />
           <div className="leading-tight">
             <div className="arcade text-sm uppercase italic">{MOVE_NAMES[fighter][m]}</div>
             <div className="text-[9px] font-bold tracking-widest opacity-70">{POSE_HINT[m]}</div>
@@ -95,7 +51,7 @@ export function PoseGuide({ fighter }: { fighter: Fighter }) {
       <div className="grid grid-cols-5 gap-2">
         {MOVES.map((m) => (
           <div key={m} className={`flex flex-col items-center gap-1 rounded-xl ${MOVE_META[m].color} px-1 py-2 text-black`}>
-            <PoseFigure move={m} size={40} />
+            <PoseFigure move={m} size={44} />
             <div className="arcade text-center text-[11px] leading-none uppercase italic">{MOVE_NAMES[fighter][m]}</div>
             <div className="text-center text-[8px] leading-tight font-bold tracking-wide opacity-75">{POSE_HINT[m]}</div>
           </div>

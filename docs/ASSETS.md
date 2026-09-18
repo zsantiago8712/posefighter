@@ -121,3 +121,7 @@ All art and audio is CC0; attribution is voluntary but appreciated:
 - Explosion spritesheet by BenHickling — CC0 — https://opengameart.org/content/explosion-7
 - Impact Sounds by Kenney — CC0 — https://kenney.nl/assets/impact-sounds
 - Bangers font by Vernon Adams — SIL OFL 1.1 — https://fonts.google.com/specimen/Bangers
+
+## Icons
+
+- Pose guide icons (`apps/web/src/features/multiplayer/poseIcons.ts`): Google **Material Symbols** Rounded — `sports_gymnastics`, `emoji_people`, `sports_martial_arts`, `directions_run`, `shield_person`. Apache License 2.0, https://github.com/google/material-design-icons
