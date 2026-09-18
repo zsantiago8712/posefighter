@@ -150,30 +150,6 @@ export function CapturePanel({ code, token, room, fake, compact = false }: RoomS
   );
 }
 
-export const POSE_HINT: Record<Move, string> = {
-  PUNCH: "one arm straight out",
-  BLOCK: "arms crossed on chest",
-  DODGE: "lean hard to one side",
-  HEAVY_ATTACK: "wide stance + arm out",
-  SPECIAL: "both hands over head",
-};
-
-export function PoseLegend({ fighter }: { fighter: RoomSession["room"]["players"][number]["fighter"] }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      {MOVES.map((m) => (
-        <div key={m} className={`flex items-center gap-2 rounded-lg ${MOVE_META[m].color} px-2 py-1 text-black`}>
-          <span className="text-lg">{MOVE_META[m].emoji}</span>
-          <div className="leading-tight">
-            <div className="arcade text-sm uppercase italic">{MOVE_NAMES[fighter][m]}</div>
-            <div className="text-[9px] font-bold tracking-widest opacity-70">{POSE_HINT[m]}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function randomMove(): Move {
   return MOVES[Math.floor(Math.random() * MOVES.length)]!;
 }

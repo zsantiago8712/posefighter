@@ -5,7 +5,8 @@ import { FightPlayer, unlockAudio } from "@/game";
 
 import type { RoomSession } from "../types";
 import { ArcadeButton, FIGHTER_META, MOVE_META, MOVE_NAMES, Sub } from "../ui";
-import { CapturePanel, PoseLegend } from "./CapturePanel";
+import { PoseLegend } from "../PoseGuide";
+import { CapturePanel } from "./CapturePanel";
 import { FightSummaryFallback } from "./FightSummaryFallback";
 
 export type BattlePanel =

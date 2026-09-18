@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { unlockAudio } from "@/game";
 
+import { PoseGuide } from "../PoseGuide";
 import type { RoomSession } from "../types";
 import { FIGHTER_META, Screen, Sub, TextInput } from "../ui";
 
@@ -122,6 +123,8 @@ export function LobbyScreen({ code, token, room }: RoomSession) {
             </div>
           </>
         )}
+
+        {me && <PoseGuide fighter={me.fighter} />}
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl border border-white/10 bg-black/40 p-4">
           <PlayerCard nickname={me?.nickname ?? "—"} fighter={me?.fighter ?? "BOXER"} present={!!me} ready={!!me?.ready} />
