@@ -1,7 +1,7 @@
 import type { CombatResult } from "@posefighter/backend/convex/shared/contracts";
 import { Component, type ReactNode, useEffect, useState } from "react";
 
-import { FightPlayer } from "@/game";
+import { FightPlayer, unlockAudio } from "@/game";
 
 import type { RoomSession } from "../types";
 import { ArcadeButton, FIGHTER_META, MOVE_META, MOVE_NAMES, Sub } from "../ui";
@@ -44,6 +44,7 @@ export function BattleScreen({
     <main
       className="relative grid h-dvh w-full grid-cols-1 overflow-hidden bg-[#0a0614] text-white lg:grid-cols-[minmax(0,1fr)_400px]"
       style={{ touchAction: "none", overscrollBehavior: "none" }}
+      onPointerDown={unlockAudio}
     >
       {/* ARENA */}
       <section className="relative min-h-0 overflow-hidden">

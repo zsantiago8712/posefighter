@@ -1,31 +1,9 @@
 import type { CombatResult } from "@posefighter/backend/convex/shared/contracts";
 import * as Phaser from "phaser";
+import { getSharedAudioContext } from "./audio/context";
 import { BACKGROUND_COLOR, pickLayout } from "./config";
 import { BootScene } from "./scenes/BootScene";
 import { FIGHT_COMPLETE_EVENT, FightScene } from "./scenes/FightScene";
-
-let sharedAudioContext: AudioContext | undefined;
-
-/**
- * One AudioContext for every FightPlayer mount. Mobile browsers only unlock audio after a user gesture;
- * by sharing the context, the first tap (e.g. MULTIPLAYER's "TAP TO FIGHT") unlocks every later round too.
- */
-function getSharedAudioContext(): AudioContext | undefined {
-  if (typeof window === "undefined") return undefined;
-  if (!sharedAudioContext) {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctx) return undefined;
-    sharedAudioContext = new Ctx();
-    const resume = () => {
-      void sharedAudioContext?.resume();
-    };
-    for (const type of ["pointerdown", "touchend", "keydown"] as const) {
-      window.addEventListener(type, resume, { passive: true });
-    }
-  }
-  if (sharedAudioContext.state === "suspended") void sharedAudioContext.resume();
-  return sharedAudioContext;
-}
 
 /**
  * Client-only. This module (and Phaser) is dynamically imported by FightPlayer inside useEffect.

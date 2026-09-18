@@ -3,6 +3,8 @@ import { FIGHTERS, type Fighter } from "@posefighter/backend/convex/shared/contr
 import { useMutation } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 
+import { unlockAudio } from "@/game";
+
 import type { RoomSession } from "../types";
 import { FIGHTER_META, Screen, Sub, TextInput } from "../ui";
 
@@ -91,7 +93,10 @@ export function LobbyScreen({ code, token, room }: RoomSession) {
                     <button
                       key={f}
                       type="button"
-                      onClick={() => void setProfile({ code, token, fighter: f, ready: true })}
+                      onClick={() => {
+                        unlockAudio(); // user gesture → audio allowed for the whole battle
+                        void setProfile({ code, token, fighter: f, ready: true });
+                      }}
                       className={`flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl bg-gradient-to-br ${meta.color} transition-all select-none ${selected ? `scale-105 ring-4 ring-yellow-300 shadow-xl ${meta.glow}` : "opacity-70"}`}
                     >
                       <span className="text-4xl">{meta.emoji}</span>

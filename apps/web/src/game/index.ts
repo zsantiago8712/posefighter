@@ -5,3 +5,6 @@
  */
 export { FightPlayer } from "./FightPlayer";
 export type { FightPlayerProps } from "./FightPlayer";
+
+/** Call from a tap/click handler so the fight has sound even if the player never touches the screen again. */
+export { unlockAudio } from "./audio/context";
