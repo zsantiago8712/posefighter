@@ -1,6 +1,6 @@
-import type { CombatResult } from "@posefighter/backend/convex/shared/contracts";
+import { type CombatResult, FIGHTERS, type Fighter } from "@posefighter/backend/convex/shared/contracts";
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { FightPlayer } from "@/game";
 import { FIXTURES } from "@/game/fixtures";
@@ -24,6 +24,9 @@ function DebugFightPage() {
   const [showControls, setShowControls] = useState(true);
   // Mirrors the real flow: a tap ("TAP TO FIGHT") unlocks audio before the first Phaser mount.
   const [started, setStarted] = useState(false);
+  // Optional overrides so any pair of fighters can be compared in any outcome
+  const [p1Fighter, setP1Fighter] = useState<Fighter | null>(null);
+  const [p2Fighter, setP2Fighter] = useState<Fighter | null>(null);
   const playAllRef = useRef(playAll);
   playAllRef.current = playAll;
 
@@ -47,8 +50,22 @@ function DebugFightPage() {
   }, []);
 
   const fixture = FIXTURES[run.index] ?? FIXTURES[0];
-  if (!fixture) return null;
-  const result: CombatResult = fixture.result;
+  // memoized: FightPlayer remounts whenever `result` identity changes
+  const result: CombatResult | undefined = useMemo(() => {
+    if (!fixture) return undefined;
+    const base = fixture.result;
+    return {
+      ...base,
+      player1: { ...base.player1, fighter: p1Fighter ?? base.player1.fighter },
+      player2: { ...base.player2, fighter: p2Fighter ?? base.player2.fighter },
+    };
+  }, [fixture, p1Fighter, p2Fighter]);
+  if (!fixture || !result) return null;
+
+  const pickFighter = (side: "p1" | "p2", fighter: Fighter | null) => {
+    (side === "p1" ? setP1Fighter : setP2Fighter)(fighter);
+    if (started) start(run.index);
+  };
 
   return (
     <div className="fixed inset-0 flex flex-col bg-black text-white md:flex-row" style={{ touchAction: "none" }}>
@@ -109,6 +126,39 @@ function DebugFightPage() {
               </button>
             ))}
           </div>
+          {(["p1", "p2"] as const).map((side) => {
+            const current = side === "p1" ? p1Fighter : p2Fighter;
+            const fromFixture = side === "p1" ? fixture.result.player1.fighter : fixture.result.player2.fighter;
+            return (
+              <div key={side} className="flex items-center gap-1">
+                <span className="w-7 shrink-0 font-mono text-xs text-white/60">{side.toUpperCase()}</span>
+                {FIGHTERS.map((f) => {
+                  const active = (current ?? fromFixture) === f;
+                  return (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => pickFighter(side, f)}
+                      className={`flex-1 rounded-md text-xs font-bold uppercase ${active ? (current ? "bg-pink-500 text-white" : "bg-white/40 text-black") : "bg-white/10"}`}
+                      style={{ minHeight: 44 }}
+                      title={current ? "override" : "from fixture"}
+                    >
+                      {f}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => pickFighter(side, null)}
+                  className="shrink-0 rounded-md bg-white/10 px-2 text-xs font-bold"
+                  style={{ minHeight: 44 }}
+                  title="use the fixture's fighter"
+                >
+                  ↺
+                </button>
+              </div>
+            );
+          })}
           <div className="grid grid-cols-3 gap-2">
             <button type="button" onClick={() => start(run.index)} className="rounded-md bg-white/15 font-bold uppercase" style={{ minHeight: 56 }}>
               Replay
