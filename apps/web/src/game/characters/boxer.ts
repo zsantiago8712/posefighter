@@ -15,6 +15,8 @@ export const BOXER: CharacterDefinition = {
     scale: 1.55,
     originY: 1,
     facing: "left",
+    // union-bbox pack: KO frames reach the cell bottom, standing frames leave 25px of air under the feet
+    footOffset: 25,
   },
   moveNames: {
     PUNCH: "JAB",

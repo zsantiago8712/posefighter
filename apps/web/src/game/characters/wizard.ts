@@ -15,6 +15,7 @@ export const WIZARD: CharacterDefinition = {
     scale: 1.6,
     originY: 1,
     facing: "right",
+    footOffset: 6,
   },
   moveNames: {
     PUNCH: "ARCANE BOLT",

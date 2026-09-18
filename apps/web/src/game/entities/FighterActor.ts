@@ -38,10 +38,11 @@ export class FighterActor {
 
     const textureKey = def.animations.idle.key;
     if (scene.textures.exists(textureKey)) {
+      const scale = (def.assets.scale ?? 1) * scaleMultiplier;
       this.sprite = scene.add
-        .sprite(0, 0, textureKey, 0)
+        .sprite(0, (def.assets.footOffset ?? 0) * scale, textureKey, 0)
         .setOrigin(0.5, def.assets.originY ?? 1)
-        .setScale((def.assets.scale ?? 1) * scaleMultiplier);
+        .setScale(scale);
       const artFacesRight = (def.assets.facing ?? "right") === "right";
       this.sprite.setFlipX(artFacesRight !== (this.dir === 1));
       if (def.assets.tint !== undefined) this.sprite.setTint(def.assets.tint);

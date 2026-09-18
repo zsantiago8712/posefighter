@@ -52,6 +52,8 @@ export interface CharacterDefinition {
     tint?: number;
     /** direction the art faces in the source sheet. P1 must face right, so "left" packs get flipped. */
     facing?: "left" | "right";
+    /** transparent px between the feet and the bottom of the frame (sheet space); sprite is pushed down by this */
+    footOffset?: number;
   };
   moveNames: Record<Move, string>;
   animations: {
