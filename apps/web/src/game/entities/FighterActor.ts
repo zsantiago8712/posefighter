@@ -16,6 +16,8 @@ export class FighterActor {
   readonly sprite?: Phaser.GameObjects.Sprite;
   readonly placeholder?: Phaser.GameObjects.Rectangle;
   private readonly shadow: Phaser.GameObjects.Ellipse;
+  /** resting scale of the sprite/placeholder, restored whenever we go back to idle */
+  private baseScale = { x: 1, y: 1 };
   readonly homeX: number;
   /** +1 faces right (P1), -1 faces left (P2) */
   readonly dir: 1 | -1;
@@ -59,6 +61,8 @@ export class FighterActor {
       this.container.add([this.placeholder, label, eye]);
     }
     this.shadow.setSize(this.width * 1.15, Math.max(24, this.width * 0.26));
+    const body = this.sprite ?? this.placeholder;
+    if (body) this.baseScale = { x: body.scaleX, y: body.scaleY };
     this.playIdle();
   }
 
@@ -111,24 +115,39 @@ export class FighterActor {
     return this.def.animations[name];
   }
 
-  /** Plays an animation (sprite frames or placeholder tween). Returns the duration in ms (0 for loops). */
-  play(name: AnimationName, rateScale = 1): number {
+  /**
+   * Plays an animation (sprite frames or placeholder tween). Returns the duration in ms (0 for loops).
+   * `hold` keeps the final pose (e.g. guard up) until playIdle() is called explicitly.
+   */
+  play(name: AnimationName, rateScale = 1, hold = false): number {
     this.stopIdleTween();
+    this.resetPose();
     if (this.sprite && this.hasAnim(name)) {
       const anim = this.scene.anims.get(this.animKey(name));
       const frameRate = anim.frameRate * rateScale;
       this.sprite.play({ key: anim.key, frameRate });
       if (anim.repeat === -1) return 0;
       const duration = (anim.frames.length / frameRate) * 1000;
-      if (name !== "ko") {
+      if (name !== "ko" && !hold) {
         this.sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => this.playIdle());
       }
       return duration;
     }
-    return this.fallbackAnim(name);
+    return this.fallbackAnim(name, hold);
+  }
+
+  /** Undo leftovers from tween-based fallbacks (squash, fade, tilt) — never after a KO. */
+  private resetPose(): void {
+    const target = this.sprite ?? this.placeholder;
+    if (!target) return;
+    this.scene.tweens.killTweensOf(target);
+    target.setScale(this.baseScale.x, this.baseScale.y).setAlpha(1).setAngle(0);
+    if (this.sprite) this.sprite.setPosition(0, (this.def.assets.footOffset ?? 0) * this.baseScale.x);
+    else target.setPosition(0, 0);
   }
 
   playIdle(): void {
+    this.resetPose();
     if (this.sprite && this.hasAnim("idle")) {
       this.sprite.play(this.animKey("idle"), true);
       return;
@@ -136,7 +155,6 @@ export class FighterActor {
     this.stopIdleTween();
     const target = this.sprite ?? this.placeholder;
     if (!target) return;
-    target.setScale(target.scaleX, target.scaleY);
     this.idleTween = this.scene.tweens.add({
       targets: target,
       scaleY: target.scaleY * 1.03,
@@ -156,14 +174,14 @@ export class FighterActor {
   }
 
   /** Tween-based stand-ins for missing frames. Works on both the sprite and the placeholder. */
-  private fallbackAnim(name: AnimationName): number {
+  private fallbackAnim(name: AnimationName, hold = false): number {
     const target = this.sprite ?? this.placeholder;
     if (!target) return 300;
-    const baseScaleX = this.sprite ? this.sprite.scaleX : 1;
-    const baseScaleY = this.sprite ? this.sprite.scaleY : 1;
+    const baseScaleX = this.baseScale.x;
+    const baseScaleY = this.baseScale.y;
     const done = (ms: number) => {
       this.scene.time.delayedCall(ms, () => {
-        if (name !== "ko") this.playIdle();
+        if (name !== "ko" && !hold) this.playIdle();
       });
       return ms;
     };
@@ -180,7 +198,8 @@ export class FighterActor {
         this.scene.tweens.add({ targets: target, x: this.dir * 60, duration: 180, delay: 100, yoyo: true, ease: "Quad.easeOut" });
         return done(460);
       case "block":
-        this.scene.tweens.add({ targets: target, scaleX: baseScaleX * 0.88, scaleY: baseScaleY * 0.94, duration: 120, yoyo: true, hold: 420 });
+        // crouch into the guard; when holding, stay there until playIdle()
+        this.scene.tweens.add({ targets: target, scaleX: baseScaleX * 0.88, scaleY: baseScaleY * 0.94, duration: 120, yoyo: !hold, hold: hold ? 0 : 420 });
         return done(680);
       case "dodge":
         this.scene.tweens.add({ targets: target, alpha: 0.35, duration: 120, yoyo: true, hold: 300 });

@@ -78,15 +78,16 @@ export function flash(scene: Phaser.Scene, color = 0xffffff, alpha = 0.9, durati
 export function impactRing(scene: Phaser.Scene, x: number, y: number, color: number, size = 1): void {
   const ring = scene.add.circle(x, y, 40, color, 0).setStrokeStyle(10, color, 1).setDepth(DEPTH.vfx).setScale(0.2);
   scene.tweens.add({ targets: ring, scale: 2.2 * size, alpha: 0, duration: 320, ease: "Cubic.easeOut", onComplete: () => ring.destroy() });
-  const g = scene.add.graphics().setDepth(DEPTH.vfx);
+  // rays are drawn around (0,0) and the graphics object is positioned at the impact, so the scale tween grows from the centre
+  const g = scene.add.graphics({ x, y }).setDepth(DEPTH.vfx);
   const rays = 8;
   for (let i = 0; i < rays; i++) {
     const a = (i / rays) * Math.PI * 2 + Math.random() * 0.4;
     const len = (60 + Math.random() * 80) * size;
     g.lineStyle(6 * size, i % 2 ? 0xffffff : color, 1);
     g.beginPath();
-    g.moveTo(x + Math.cos(a) * 20, y + Math.sin(a) * 20);
-    g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
+    g.moveTo(Math.cos(a) * 20, Math.sin(a) * 20);
+    g.lineTo(Math.cos(a) * len, Math.sin(a) * len);
     g.strokePath();
   }
   scene.tweens.add({ targets: g, alpha: 0, scale: 1.4, duration: 220, onComplete: () => g.destroy() });

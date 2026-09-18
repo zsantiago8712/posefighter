@@ -163,7 +163,15 @@ export class FightScene extends Phaser.Scene {
     if (heavy) {
       burst(this, atk.chest.x, atk.chest.y, atk.def.palette.glow, 12, 250);
     }
-    await this.delay(TIMING.anticipation);
+    // a blocker raises the guard BEFORE the swing so the audience sees the block absorb the hit
+    let shield: Phaser.GameObjects.Image | undefined;
+    if (step.reaction === "block") {
+      def.play("block", 1, true);
+      this.banner.caption(def.x, this.layout.groundY - def.height - 40, def.def.moveNames[def.side === "p1" ? this.result.player1.move : this.result.player2.move], "#4da3ff");
+      playSfx(this, "block", 0.35, 0.7);
+      shield = this.showShield(def, -1);
+    }
+    await this.delay(TIMING.anticipation + (step.reaction === "block" ? 180 : 0));
     if (!this.alive) return;
 
     if (a.projectile) {
@@ -178,8 +186,9 @@ export class FightScene extends Phaser.Scene {
       this.time.delayedCall(Math.max(0, travelMs - 140), () => this.beginDefense(def, step));
       await fireProjectile(this, a.projectile.key, from, to, a.projectile.speed, a.projectile.scale ?? 1, atk.def.palette.glow);
       if (!this.alive) return;
-      this.resolveImpact(atk, def, step, a, heavy);
+      this.resolveImpact(atk, def, step, a, heavy, shield);
       await this.delay(TIMING.outcomeBanner);
+      this.releaseGuard(def, shield);
       return;
     }
 
@@ -196,7 +205,7 @@ export class FightScene extends Phaser.Scene {
     this.beginDefense(def, step);
     await this.delay(impactAt - preReact);
     if (!this.alive) return;
-    this.resolveImpact(atk, def, step, a, heavy);
+    this.resolveImpact(atk, def, step, a, heavy, shield);
     await this.delay(Math.max(150, duration - impactAt));
     if (!this.alive) return;
     if (!step.lethal) {
@@ -204,20 +213,26 @@ export class FightScene extends Phaser.Scene {
     } else {
       await this.delay(TIMING.outcomeBanner);
     }
+    this.releaseGuard(def, shield);
+  }
+
+  private releaseGuard(def: FighterActor, shield: Phaser.GameObjects.Image | undefined): void {
+    if (!shield) return;
+    if (this.alive) def.playIdle();
+    this.tweens.add({ targets: shield, alpha: 0, scale: 0.6, duration: 220, onComplete: () => shield.destroy() });
   }
 
   /** Defender starts blocking/dodging a beat before the hit connects. */
   private beginDefense(def: FighterActor, step: AttackStep): void {
-    if (step.reaction === "block") {
-      def.play("block");
-      this.showShield(def);
-    } else if (step.reaction === "dodge") {
+    // block is raised earlier, during the attacker's anticipation (see attack())
+    if (step.reaction === "dodge") {
       void def.dodge();
     }
   }
 
-  private showShield(def: FighterActor): void {
-    if (!this.textures.exists("shield")) return;
+  /** Rune shield in front of the defender. holdMs < 0 keeps it until releaseGuard(). */
+  private showShield(def: FighterActor, holdMs = 420): Phaser.GameObjects.Image | undefined {
+    if (!this.textures.exists("shield")) return undefined;
     const s = this.add
       .image(def.chest.x + def.dir * 30, def.chest.y, "shield")
       .setDepth(DEPTH.vfx)
@@ -226,10 +241,23 @@ export class FightScene extends Phaser.Scene {
       .setScale(0.2)
       .setAlpha(0.9);
     this.tweens.add({ targets: s, scale: 1.1, duration: 160, ease: "Back.easeOut" });
-    this.tweens.add({ targets: s, angle: 40, alpha: 0, delay: 420, duration: 320, onComplete: () => s.destroy() });
+    if (holdMs < 0) {
+      // slow spin while the guard is up
+      this.tweens.add({ targets: s, angle: 360, duration: 4000, repeat: -1 });
+    } else {
+      this.tweens.add({ targets: s, angle: 40, alpha: 0, delay: holdMs, duration: 320, onComplete: () => s.destroy() });
+    }
+    return s;
   }
 
-  private resolveImpact(atk: FighterActor, def: FighterActor, step: AttackStep, a: AnimationDefinition, heavy: boolean): void {
+  private resolveImpact(
+    atk: FighterActor,
+    def: FighterActor,
+    step: AttackStep,
+    a: AnimationDefinition,
+    heavy: boolean,
+    shield?: Phaser.GameObjects.Image,
+  ): void {
     const point = { x: def.chest.x + def.dir * def.width * 0.3, y: def.chest.y };
     const glow = atk.def.palette.glow;
     const defender = this.player(def.side);
@@ -251,15 +279,27 @@ export class FightScene extends Phaser.Scene {
     }
 
     if (step.reaction === "block") {
-      hitStop(this, 50);
-      shake(this, 0.005, 140);
-      impactRing(this, point.x, point.y, def.def.palette.primary, 0.8);
-      burst(this, point.x, point.y, def.def.palette.primary, 10, 350);
-      playSfx(this, "block", 0.7);
-      def.knockback(18, 120);
+      // the shield takes the hit: pulse + sparks in the defender's colour, attacker bounces off
+      hitStop(this, heavy ? 90 : 60);
+      shake(this, heavy ? 0.008 : 0.005, 160);
+      flash(this, def.def.palette.primary, 0.35, 100);
+      if (shield) {
+        this.tweens.add({ targets: shield, scale: 1.5, duration: 80, yoyo: true, ease: "Quad.easeOut" });
+        shield.setTintFill(0xffffff);
+        this.time.delayedCall(90, () => shield.active && shield.setTint(def.def.palette.primary));
+      }
+      impactRing(this, point.x + def.dir * 30, point.y, def.def.palette.primary, heavy ? 1.2 : 0.8);
+      burst(this, point.x + def.dir * 30, point.y, def.def.palette.primary, heavy ? 22 : 12, 450);
+      playSfx(this, "block", 0.8);
+      def.knockback(12, 120);
+      atk.knockback(heavy ? 50 : 30, 180);
+      atk.flashTint(0xffffff, 80);
       if (step.damage > 0) {
+        // chip damage: smaller blue number so it reads as "reduced"
         damageNumber(this, point.x, point.y - 60, step.damage, "blocked");
         this.bars[def.side].setHp(defender.hpAfter, TIMING.hpDrain);
+      } else {
+        damageNumber(this, point.x, point.y - 60, "NO DMG", "blocked");
       }
       return;
     }
