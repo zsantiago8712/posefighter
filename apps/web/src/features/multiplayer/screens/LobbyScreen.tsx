@@ -15,6 +15,7 @@ import { FIGHTER_META, Screen, Sub, TextInput } from "../ui";
 export function LobbyScreen({ code, token, room }: RoomSession) {
   const setProfile = useMutation(api.rooms.setProfile);
   const startBattle = useMutation(api.rooms.startBattle);
+  const heartbeat = useMutation(api.rooms.heartbeat);
   const [copied, setCopied] = useState(false);
   const startedRef = useRef(false);
 
@@ -22,6 +23,13 @@ export function LobbyScreen({ code, token, room }: RoomSession) {
   const opponent = room.opponent;
   const bothReady = !!me?.ready && !!opponent?.ready;
   const link = typeof window !== "undefined" ? `${window.location.origin}/room/${code}` : `/room/${code}`;
+
+  // Presence ping while in the lobby so Quick Match only pairs people into lobbies that are still open.
+  useEffect(() => {
+    void heartbeat({ code, token });
+    const id = setInterval(() => void heartbeat({ code, token }), 10_000);
+    return () => clearInterval(id);
+  }, [code, token, heartbeat]);
 
   // Auto-start once both fighters are picked (host drives it; mutation is idempotent).
   useEffect(() => {
@@ -49,6 +57,12 @@ export function LobbyScreen({ code, token, room }: RoomSession) {
   return (
     <Screen className="justify-between gap-6">
       <div className="flex flex-col items-center gap-1">
+        {room.isPublic && !opponent && (
+          <div className="mb-2 flex items-center gap-2 rounded-full border border-yellow-300/40 bg-yellow-300/10 px-4 py-1.5">
+            <span className="size-2 animate-ping rounded-full bg-yellow-300" />
+            <span className="text-[11px] font-bold tracking-widest text-yellow-200 uppercase">Quick match · searching for an opponent…</span>
+          </div>
+        )}
         <Sub>room code</Sub>
         <button type="button" onClick={share} className="arcade text-7xl tracking-[0.2em] text-yellow-300 italic select-all">
           {code}
@@ -120,7 +134,9 @@ export function LobbyScreen({ code, token, room }: RoomSession) {
         {bothReady
           ? "FIGHT!"
           : !opponent
-            ? "Waiting for player 2…"
+            ? room.isPublic
+              ? "Finding a random fighter… share the code to skip the wait"
+              : "Waiting for player 2…"
             : !me?.ready
               ? "Pick your fighter!"
               : `Waiting for ${opponent.nickname} to pick…`}

@@ -26,7 +26,11 @@ export default defineSchema({
     hostToken: v.string(),
     winnerPlayerId: v.optional(v.id("players")),
     createdAt: v.number(),
-  }).index("by_code", ["code"]),
+    /** Quick Match rooms: anyone in the queue can be paired into them while they sit in LOBBY with one player. */
+    isPublic: v.optional(v.boolean()),
+  })
+    .index("by_code", ["code"])
+    .index("by_public_status", ["isPublic", "status"]),
 
   players: defineTable({
     roomId: v.id("rooms"),

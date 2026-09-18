@@ -11,6 +11,7 @@ export function HomeScreen() {
   const navigate = useNavigate();
   const createRoom = useMutation(api.rooms.createRoom);
   const joinRoom = useMutation(api.rooms.joinRoom);
+  const quickMatch = useMutation(api.rooms.quickMatch);
 
   const [nickname, setNickname] = useState("");
   const [code, setCode] = useState("");
@@ -36,6 +37,19 @@ export function HomeScreen() {
       await navigate({ to: "/room/$code", params: { code } });
     } catch (e) {
       setError(String((e as Error).message ?? e));
+      setBusy(false);
+    }
+  }
+
+  async function onQuickMatch() {
+    if (!token || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { code } = await quickMatch({ token, nickname: nick() });
+      await navigate({ to: "/room/$code", params: { code } });
+    } catch (e) {
+      setError(friendlyError(e));
       setBusy(false);
     }
   }
@@ -68,8 +82,13 @@ export function HomeScreen() {
           <TextInput value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="SANTI" maxLength={12} autoCapitalize="characters" />
         </label>
 
-        <ArcadeButton big onClick={onCreate} disabled={!token || busy}>
-          Create battle
+        <ArcadeButton big onClick={onQuickMatch} disabled={!token || busy}>
+          ⚡ Quick match
+        </ArcadeButton>
+        <p className="-mt-3 text-center text-[10px] tracking-widest text-white/40 uppercase">fight a random opponent</p>
+
+        <ArcadeButton tone="ghost" onClick={onCreate} disabled={!token || busy}>
+          Create private battle
         </ArcadeButton>
 
         <div className="flex items-center gap-3 text-white/40">

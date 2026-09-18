@@ -51,8 +51,18 @@ export const createRoom = mutation({
     token: v.string(),
     nickname: v.optional(v.string()),
     fighter: v.optional(fighterValidator),
+    isPublic: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    return await createRoomImpl(ctx, args);
+  },
+});
+
+async function createRoomImpl(
+  ctx: MutationCtx,
+  args: { token: string; nickname?: string; fighter?: Doc<"players">["fighter"]; isPublic?: boolean },
+): Promise<{ code: string }> {
+  {
     let code = generateRoomCode();
     for (let i = 0; i < 10; i++) {
       const existing = await getRoomByCode(ctx, code);
@@ -67,6 +77,7 @@ export const createRoom = mutation({
       roundNumber: 0,
       hostToken: args.token,
       createdAt: now,
+      isPublic: args.isPublic ?? false,
     });
 
     await ctx.db.insert("players", {
@@ -81,6 +92,64 @@ export const createRoom = mutation({
     });
 
     return { code };
+  }
+}
+
+/** A public lobby counts as "alive" if its host pinged within this window (LobbyScreen heartbeats every 10 s). */
+const QUEUE_ALIVE_MS = 40_000;
+
+/**
+ * QUICK MATCH. Join the oldest alive public lobby that has exactly one (other) player; if none, open a new
+ * public lobby and wait there. Convex mutations are serialized, so two players hitting this at once can't
+ * both be seated into the same single slot.
+ */
+export const quickMatch = mutation({
+  args: {
+    token: v.string(),
+    nickname: v.optional(v.string()),
+    fighter: v.optional(fighterValidator),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const candidates = await ctx.db
+      .query("rooms")
+      .withIndex("by_public_status", (q) => q.eq("isPublic", true).eq("status", "LOBBY"))
+      .order("asc")
+      .take(25);
+
+    for (const room of candidates) {
+      if (room.hostToken === args.token) return { code: room.code, matched: false }; // already queued
+      const players = await getRoomPlayers(ctx, room._id);
+      if (players.length !== 1) continue;
+      const host = players[0]!;
+      if (now - host.lastSeenAt > QUEUE_ALIVE_MS) continue; // abandoned lobby
+      await ctx.db.insert("players", {
+        roomId: room._id,
+        token: args.token,
+        seat: 2,
+        nickname: args.nickname?.trim() || "PLAYER 2",
+        fighter: args.fighter ?? "SAMURAI",
+        hp: MAX_HP,
+        ready: false,
+        lastSeenAt: now,
+      });
+      return { code: room.code, matched: true };
+    }
+
+    const { code } = await createRoomImpl(ctx, { ...args, isPublic: true });
+    return { code, matched: false };
+  },
+});
+
+/** Presence ping so Quick Match never pairs someone into a lobby whose host left. */
+export const heartbeat = mutation({
+  args: { code: v.string(), token: v.string() },
+  handler: async (ctx, args) => {
+    const room = await getRoomByCode(ctx, args.code);
+    if (!room) return;
+    const players = await getRoomPlayers(ctx, room._id);
+    const me = findPlayerByToken(players, args.token);
+    if (me) await ctx.db.patch(me._id, { lastSeenAt: Date.now() });
   },
 });
 
@@ -222,6 +291,7 @@ export const getRoomView = query({
       code: room.code,
       status: room.status,
       roundNumber: room.roundNumber,
+      isPublic: room.isPublic ?? false,
       isHost: me ? room.hostToken === args.token : false,
       winnerPlayerId: room.winnerPlayerId ?? null,
       players: players.map(publicPlayer),
