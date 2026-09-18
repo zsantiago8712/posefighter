@@ -8,7 +8,6 @@ import { ChooseMoveScreen } from "./screens/ChooseMoveScreen";
 import { FightScreen } from "./screens/FightScreen";
 import { LobbyScreen } from "./screens/LobbyScreen";
 import { ResultScreen } from "./screens/ResultScreen";
-import { RevealScreen } from "./screens/RevealScreen";
 import { getSavedNickname, usePlayerToken } from "./usePlayerToken";
 import { ArcadeButton, Screen, Sub, Title } from "./ui";
 
@@ -41,8 +40,8 @@ export function RoomScreen({ code, fake, fresh = false }: { code: string; fake: 
     joinRoom({ code, token, nickname: getSavedNickname() || undefined }).catch((e) => setJoinError(String(e?.message ?? e)));
   }, [token, room, code, joinRoom]);
 
-  // Round presentation: "watching" = reveal or fight for a resolved round; "waiting" = ready, waiting for other.
-  const [watched, setWatched] = useState<{ round: number; phase: "reveal" | "fight" | "waiting" | "done" } | null>(null);
+  // Round presentation: "fight" = playing the cinematic for a resolved round; "waiting" = ready, waiting for other.
+  const [watched, setWatched] = useState<{ round: number; phase: "fight" | "waiting" | "done" } | null>(null);
 
   const showResultRound = room && (room.status === "REVEAL" || room.status === "FINISHED") ? room.roundNumber : null;
   const roundResult = useQuery(
@@ -50,13 +49,11 @@ export function RoomScreen({ code, fake, fresh = false }: { code: string; fake: 
     showResultRound !== null ? { code, roundNumber: showResultRound } : "skip",
   );
 
-  // When a new resolved round appears, start watching it from the reveal.
+  // When a new resolved round appears, go STRAIGHT into the cinematic.
   useEffect(() => {
     if (showResultRound === null) return;
-    if (!watched || watched.round !== showResultRound) setWatched({ round: showResultRound, phase: "reveal" });
+    if (!watched || watched.round !== showResultRound) setWatched({ round: showResultRound, phase: "fight" });
   }, [showResultRound, watched]);
-
-  const onRevealDone = useCallback(() => setWatched((w) => (w ? { ...w, phase: "fight" } : w)), []);
 
   const onFightDone = useCallback(async () => {
     if (!token || !room) return;
@@ -107,7 +104,6 @@ export function RoomScreen({ code, fake, fresh = false }: { code: string; fake: 
   const result = roundResult?.result as CombatResult | undefined;
   if (!result || !watched || watched.round !== room.roundNumber) return <Centered><Sub>resolving…</Sub></Centered>;
 
-  if (watched.phase === "reveal") return <RevealScreen result={result} onDone={onRevealDone} />;
   if (watched.phase === "fight") return <FightScreen result={result} onComplete={() => void onFightDone()} />;
 
   if (room.status === "FINISHED") return <ResultScreen {...session} lastResult={result} />;
