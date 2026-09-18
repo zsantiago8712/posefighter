@@ -8,6 +8,8 @@ import { defineConfig } from "vite";
 export default defineConfig(({ command }) => ({
   server: {
     port: 3001,
+    // Let phones/other PCs reach the dev server through HTTPS tunnels (camera needs HTTPS).
+    allowedHosts: [".ngrok-free.app", ".ngrok.app", ".trycloudflare.com"],
   },
   resolve: {
     tsconfigPaths: true,
