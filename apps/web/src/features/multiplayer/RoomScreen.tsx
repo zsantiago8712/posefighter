@@ -1,22 +1,22 @@
 import { api } from "@posefighter/backend/convex/_generated/api";
-import type { CombatResult } from "@posefighter/backend/convex/shared/contracts";
+import { MAX_HP, type CombatResult } from "@posefighter/backend/convex/shared/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { ChooseMoveScreen } from "./screens/ChooseMoveScreen";
-import { FightScreen } from "./screens/FightScreen";
+import { BattleScreen, type BattlePanel } from "./screens/BattleScreen";
 import { LobbyScreen } from "./screens/LobbyScreen";
 import { ResultScreen } from "./screens/ResultScreen";
 import { getSavedNickname, usePlayerToken } from "./usePlayerToken";
 import { ArcadeButton, Screen, Sub, Title } from "./ui";
+import type { RoomView } from "./types";
 
 /**
- * Derives the current screen from Convex room state + a little local presentation state.
+ * Derives the screen from Convex room state + a little local presentation state.
  *
- * Convex truth:  LOBBY | IN_ROUND | REVEAL | FINISHED  (+ my submission flag)
- * Local state:   which round I have already watched (reveal + fight), so the same round
- *                doesn't replay, and FINISHED still shows the final round once.
+ *   LOBBY                      → LobbyScreen
+ *   IN_ROUND / REVEAL          → BattleScreen (arena always mounted; side panel = camera | fight | waiting)
+ *   FINISHED (after cinematic) → ResultScreen
  */
 export function RoomScreen({ code, fake, fresh = false }: { code: string; fake: boolean; fresh?: boolean }) {
   const token = usePlayerToken(fresh);
@@ -26,7 +26,9 @@ export function RoomScreen({ code, fake, fresh = false }: { code: string; fake: 
   useEffect(() => {
     if (fresh && token) void navigate({ to: "/room/$code", params: { code }, search: { fake }, replace: true });
   }, [fresh, token, code, fake, navigate]);
+
   const room = useQuery(api.rooms.getRoomView, token ? { code, token } : "skip");
+  const rounds = useQuery(api.rounds.listRounds, room ? { code } : "skip");
   const joinRoom = useMutation(api.rooms.joinRoom);
   const readyForNextRound = useMutation(api.rounds.readyForNextRound);
   const forceNextRound = useMutation(api.rounds.forceNextRound);
@@ -40,30 +42,29 @@ export function RoomScreen({ code, fake, fresh = false }: { code: string; fake: 
     joinRoom({ code, token, nickname: getSavedNickname() || undefined }).catch((e) => setJoinError(String(e?.message ?? e)));
   }, [token, room, code, joinRoom]);
 
-  // Round presentation: "fight" = playing the cinematic for a resolved round; "waiting" = ready, waiting for other.
+  // Latest resolved round (stable identity per roundNumber so the arena doesn't replay on unrelated updates).
+  const latest = rounds && rounds.length > 0 ? rounds[rounds.length - 1] : undefined;
+  const latestRound = latest?.roundNumber ?? 0;
+  const latestResult = useMemo(() => latest, [latestRound]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Which round's cinematic have we already handled? (reset on rematch when rounds disappear)
   const [watched, setWatched] = useState<{ round: number; phase: "fight" | "waiting" | "done" } | null>(null);
-
-  const showResultRound = room && (room.status === "REVEAL" || room.status === "FINISHED") ? room.roundNumber : null;
-  const roundResult = useQuery(
-    api.rounds.getRoundResult,
-    showResultRound !== null ? { code, roundNumber: showResultRound } : "skip",
-  );
-
-  // When a new resolved round appears, go STRAIGHT into the cinematic.
   useEffect(() => {
-    if (showResultRound === null) return;
-    if (!watched || watched.round !== showResultRound) setWatched({ round: showResultRound, phase: "fight" });
-  }, [showResultRound, watched]);
+    if (!room) return;
+    const resolvedNow = (room.status === "REVEAL" || room.status === "FINISHED") && latestResult?.roundNumber === room.roundNumber;
+    if (resolvedNow && (!watched || watched.round !== room.roundNumber)) setWatched({ round: room.roundNumber, phase: "fight" });
+    if (rounds && rounds.length === 0 && watched) setWatched(null); // rematch
+  }, [room, latestResult, rounds, watched]);
 
-  const onFightDone = useCallback(async () => {
-    if (!token || !room) return;
+  const onFightComplete = useCallback(async () => {
+    if (!token || !room || !watched || watched.phase !== "fight") return;
     if (room.status === "FINISHED") {
       setWatched((w) => (w ? { ...w, phase: "done" } : w));
       return;
     }
     setWatched((w) => (w ? { ...w, phase: "waiting" } : w));
-    await readyForNextRound({ code, token, roundNumber: room.roundNumber });
-  }, [token, room, code, readyForNextRound]);
+    await readyForNextRound({ code, token, roundNumber: watched.round });
+  }, [token, room, watched, code, readyForNextRound]);
 
   // ---- render -------------------------------------------------------------
 
@@ -98,27 +99,42 @@ export function RoomScreen({ code, fake, fresh = false }: { code: string; fake: 
 
   if (room.status === "LOBBY") return <LobbyScreen {...session} />;
 
-  if (room.status === "IN_ROUND") return <ChooseMoveScreen {...session} fake={fake} />;
+  if (room.status === "FINISHED" && (!latestResult || watched?.phase === "done" || watched?.round !== room.roundNumber)) {
+    return <ResultScreen {...session} lastResult={latestResult ?? null} />;
+  }
 
-  // REVEAL or FINISHED: play the round once, then wait / show result.
-  const result = roundResult?.result as CombatResult | undefined;
-  if (!result || !watched || watched.round !== room.roundNumber) return <Centered><Sub>resolving…</Sub></Centered>;
+  const arenaResult: CombatResult = latestResult ?? introResult(room);
 
-  if (watched.phase === "fight") return <FightScreen result={result} onComplete={() => void onFightDone()} />;
+  let panel: BattlePanel;
+  if (room.status === "IN_ROUND") {
+    panel = { kind: "capture" };
+  } else if (watched?.phase === "fight" && latestResult) {
+    panel = { kind: "fight", result: latestResult };
+  } else {
+    panel = { kind: "waiting", onForce: () => void forceNextRound({ code, token, roundNumber: room.roundNumber }) };
+  }
 
-  if (room.status === "FINISHED") return <ResultScreen {...session} lastResult={result} />;
+  return <BattleScreen session={session} fake={fake} arenaResult={arenaResult} panel={panel} onFightComplete={() => void onFightComplete()} />;
+}
 
-  return (
-    <Centered>
-      <Title size="md">Round {room.roundNumber} done</Title>
-      <Sub>waiting for {room.opponent?.nickname ?? "opponent"}…</Sub>
-      {room.isHost && (
-        <ArcadeButton tone="ghost" onClick={() => void forceNextRound({ code, token, roundNumber: room.roundNumber })}>
-          Force next round
-        </ArcadeButton>
-      )}
-    </Centered>
-  );
+/**
+ * Before round 1 there is no CombatResult yet. The arena still needs both fighters on stage, so we feed it a
+ * zero-damage STALEMATE with roundNumber 0. GAME may special-case roundNumber 0 as an "intro" (no moves).
+ */
+function introResult(room: RoomView): CombatResult {
+  const p1 = room.players.find((p) => p.seat === 1) ?? room.players[0]!;
+  const p2 = room.players.find((p) => p.seat === 2) ?? room.players[1] ?? p1;
+  const mk = (p: typeof p1) => ({
+    playerId: p.playerId,
+    nickname: p.nickname,
+    fighter: p.fighter,
+    move: "BLOCK" as const,
+    power: 0,
+    damageReceived: 0,
+    hpBefore: MAX_HP,
+    hpAfter: MAX_HP,
+  });
+  return { roundNumber: 0, player1: mk(p1), player2: { ...mk(p2), move: "DODGE" }, outcome: "STALEMATE" };
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
