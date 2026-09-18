@@ -1,1 +1,13 @@
 @import "@posefighter/ui/globals.css";
+
+/* Arcade display typography (Bangers, loaded in __root.tsx). Falls back to a bold system font. */
+.arcade {
+  font-family: "Bangers", "Impact", "Arial Narrow Bold", system-ui, sans-serif;
+  letter-spacing: 0.04em;
+}
+
+html,
+body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
