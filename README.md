@@ -1,123 +1,109 @@
-# posefighter — POSE FIGHT
+# POSE FIGHT 🥊⚔️🔮
 
-> **Hackathon team & AI agents: read [`AGENTS.md`](./AGENTS.md) first**, then your workstream doc in [`docs/agents/`](./docs/agents/). Coordination checklist: [`docs/HACKATHON.md`](./docs/HACKATHON.md).
+> **Your body is your controller.**
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Start, Convex, and more.
+Online 1v1 fighting game where your **physical pose** is the input. Point your phone or laptop camera at
+yourself, strike a pose during the 3‑2‑1 countdown, and your move is classified **on‑device**, submitted
+secretly, and revealed together with your opponent's. Both players then watch the same cinematic 2D fight
+with real photos of the poses that caused it.
 
-## Features
+Built in a 4‑hour hackathon by a 3‑person team with AI coding agents working in parallel.
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Start** - SSR framework with TanStack Router
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
-- **Convex** - Reactive backend-as-a-service platform
-- **Turborepo** - Optimized monorepo build system
+## ▶️ Play it
 
-## Getting Started
+**🌐 Live:** `https://<production-domain>.vercel.app` ← *(paste the production domain from Vercel → Domains)*
 
-First, install the dependencies:
+1. Open the link on two devices (phone or PC). HTTPS is required for the camera.
+2. **⚡ Quick Match** to be paired with a random player, or **Create private battle** and share the 4‑letter code / invite link.
+3. Tap **Enable camera**, pick a fighter (Boxer · Samurai · Wizard). The battle starts when both have picked.
+4. When the camera counts down, strike a pose:
+
+| Move | Pose | Beats |
+|---|---|---|
+| 👊 **PUNCH** | one arm straight out | reliable damage |
+| 🛡️ **BLOCK** | arms crossed on chest | PUNCH |
+| 💨 **DODGE** | lean hard to one side | HEAVY |
+| 💥 **HEAVY** | wide stance + arm out | BLOCK |
+| ⚡ **SPECIAL** | both hands over head | DODGE |
+
+5. Watch the fight, repeat until someone hits 0 HP. **KO → rematch.**
+
+Testing alone? In the lobby use **"open player 2 in a new tab"**. No camera? Add `?fake=1` to the room URL for move buttons.
+
+## ✨ What we built
+
+- **Vision (on‑device):** MediaPipe PoseLandmarker → 33 landmarks → geometric rules (elbow angles, torso lean, wrist positions normalized by shoulder width) → `PoseResult { move, confidence, power }` + a JPEG snapshot. Live overlay shows the detected move during the countdown. Debug page at `/debug/vision` with skeleton, angles, thresholds sliders.
+- **Multiplayer (Convex, authoritative):** rooms with 4‑letter codes, Quick Match queue, per‑tab anonymous identity, secret move submission (the opponent only sees "locked"), round resolved **once** inside the second `submitMove` mutation, HP/KO/winner, rematch, reconnect on reload, host fallback when the other phone stalls.
+- **Game (Phaser 3):** data‑driven `FightScene` fed only by a `CombatResult`: fighters from `CharacterDefinition` configs, projectiles, hit stop, camera shake, flashes, particles, damage numbers, health bars, KO slow‑mo. CC0 sprites & SFX (see `docs/ASSETS.md`). Fixture player at `/debug/fight`.
+- **One battle screen:** the Phaser arena is always mounted; on desktop the camera lives on the right, on phones in a bottom dock. Moves are captured, the cinematic plays in place, real pose photos appear beside it, next round starts automatically.
+- **Robustness:** camera error / unreadable pose / timeout → random move so a round never stalls; text fallback if WebGL fails; audio unlocked from the lobby tap (mobile autoplay rules).
+- **Privacy:** photos are used only to show the pose to your opponent during the match and are **deleted automatically** 5 minutes after the KO (and immediately on rematch). Pose detection never leaves the device.
+- **Pose guide:** Material Symbols person icons for the five poses in the lobby and battle screen.
+
+## 🧱 Architecture
+
+```
+CAMERA → VISION (MediaPipe, on device) → PoseResult + photo
+       → MULTIPLAYER (Convex: rooms · secret moves · resolveRound → CombatResult · storage)
+       → GAME (Phaser: presents the CombatResult, never computes damage)
+```
+
+Three independent systems, one shared contracts file: `packages/backend/convex/shared/contracts.ts`.
+Full docs: [`AGENTS.md`](./AGENTS.md) · [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) ·
+[`docs/GAME_DESIGN.md`](./docs/GAME_DESIGN.md) · [`docs/agents/`](./docs/agents/) (per‑workstream briefs) ·
+[`docs/HACKATHON.md`](./docs/HACKATHON.md) (war room log).
+
+### Combat rules (deterministic)
+
+Base damage PUNCH 15 · HEAVY 25 · SPECIAL 30. BLOCK takes 20 % of a PUNCH, 50 % of a SPECIAL, 100 % of a HEAVY.
+DODGE takes 50 % of a PUNCH, 0 % of a HEAVY, 100 % of a SPECIAL. Same attack → CLASH (both 50 %); different
+attacks → DOUBLE HIT; two defenses → STALEMATE. Pose quality (`power` 0–100) scales damage ×0.85–1.15. 100 HP.
+
+## 🛠 Stack
+
+TanStack Start (React 19, Vite 8, Nitro) · Convex · MediaPipe Tasks Vision · Phaser 3.90 · Tailwind 4 · shadcn/ui ·
+Bun + Turborepo · Vercel. Scaffolded with [Better‑T‑Stack](https://better-t-stack.dev).
+
+```
+apps/web/src/features/vision       camera, MediaPipe, classifier, debug overlay
+apps/web/src/features/multiplayer  screens, room state machine, Quick Match, camera check, pose guide
+apps/web/src/game                  Phaser scenes, characters, VFX, audio, fixtures
+packages/backend/convex            schema, rooms, rounds, photos, combat/resolve (+ tests)
+```
+
+## 🚀 Run locally
 
 ```bash
 bun install
+bun run dev:setup                       # once: creates a Convex dev deployment (writes packages/backend/.env.local)
+cp apps/web/.env.example apps/web/.env  # set VITE_CONVEX_URL=https://<deployment>.convex.cloud
+bun run dev                             # web on http://localhost:3001 + convex dev
 ```
 
-## Convex Setup
+Two players on one PC: open `http://localhost:3001`, create a battle, use **open player 2 in a new tab**.
+Phones need HTTPS: `bun run dev:web -- --host` then `ngrok http 3001` (tunnel hosts are allowed in `vite.config.ts`).
 
-This project uses Convex as a backend. You'll need to set up Convex before running the app:
+Useful: `/debug/vision` (pose calibration) · `/debug/fight` (animations by fighter/outcome) · `?fake=1` (buttons instead of camera).
 
 ```bash
-bun run dev:setup
+bun run check-types                 # typecheck + build every package
+cd packages/backend && bun test     # combat resolver tests
 ```
 
-Follow the prompts to create a new Convex project and connect it to your application.
+## ☁️ Deploy
 
-Copy environment variables from `packages/backend/.env.local` to `apps/*/.env`.
+- **Vercel** is connected to this repo: every push to `main` deploys production. Project root `apps/web`,
+  install command `cd ../.. && bun install`, env `VITE_CONVEX_URL`. Disable *Deployment Protection* so
+  other devices can open the URL.
+- **Convex**: the app points at the dev deployment used during the hackathon; functions are pushed with
+  `bun run dev:server` (or `bunx convex deploy` for a production deployment, then update `VITE_CONVEX_URL`).
 
-Then, run the development server:
+## 🎯 Stretch ideas
 
-```bash
-bun run dev
-```
+Secret pose "THUNDER GOD" · co‑op boss battle vs THE VOID KING · team combos · more arenas & fighters ·
+round recap with all photos · shareable battle card · spectator screen for the audience.
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
-Your app will connect to the Convex cloud backend automatically.
+## 📜 Credits & licenses
 
-## UI Customization
-
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
-
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
-
-### Add more shared components
-
-Run this from the project root to add more primitives to the shared UI package:
-
-```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
-```
-
-Import shared components like this:
-
-```tsx
-import { Button } from "@posefighter/ui/components/button";
-```
-
-### Add app-specific blocks
-
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
-
-## Environment Configuration
-
-Each app owns its environment schema in `.env.schema`. Varlock generates `src/env.ts` during installation; run `bun run env:generate` after changing a schema. Commit schemas, and keep secrets in ignored env files or your deployment platform.
-
-Import the generated `ENV` accessor in application code. Shared database and auth packages receive configuration or initialized clients from the application. See [Varlock's monorepo guide](https://varlock.dev/guides/monorepos/).
-
-Bun's automatic env loading is disabled in `bunfig.toml`; the framework integration or server bootstrap loads Varlock. Node deployments must include Varlock and its dependencies alongside the app schema.
-
-Run standalone Node/Bun tools that use Varlock from the owning app directory so they load that app's schema and env files. `env:generate` only generates TypeScript files; it does not initialize environment values in a subsequent command.
-
-## Deployment
-
-### Vercel Services
-
-- Target: web
-- Config: `vercel.json`
-- Link the project first: bun run deploy:setup
-- Local Vercel dev: bun run dev:vercel
-- Sync preview env: bun run env:preview
-- Sync production env: bun run env:production
-- Dry-run check (no upload): bun run deploy:check
-- Preview deploy: bun run deploy
-- Production deploy: bun run deploy:prod
-  Vercel Services share project environment variables, but deploys do not upload local `.env` files automatically. Link the project with `vercel link`, then run the env sync command before your first deploy (otherwise the deployment starts with no env vars), or pass one-off envs with `vercel deploy -e KEY=value`.
-  Pass Vercel CLI flags to the env sync command directly, for example: `bun run env:production --scope your-team`.
-
-For more details, see the guide on [Deploying to Vercel](https://www.better-t-stack.dev/docs/guides/vercel).
-
-## Project Structure
-
-```
-posefighter/
-├── apps/
-│   ├── web/         # Frontend application (React + TanStack Start)
-├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
-│   ├── backend/     # Convex backend functions and schema
-```
-
-## Available Scripts
-
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
-- `bun run dev:setup`: Setup and configure your Convex project
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run deploy:setup`: Link this repo to a Vercel project (first-time setup)
-- `bun run dev:vercel`: Run the Vercel Services dev environment locally
-- `bun run env:preview`: Sync local env files to the Vercel preview environment
-- `bun run env:production`: Sync local env files to the Vercel production environment
-- `bun run deploy`: Create a Vercel preview deployment
-- `bun run deploy:prod`: Deploy to Vercel production
-- `bun run deploy:check`: Dry-run a deploy to preview framework detection and included files without uploading
+Sprites, VFX and SFX are CC0 (OpenGameArt, Kenney); pose icons are Google Material Symbols (Apache 2.0);
+font Bangers (OFL). Full inventory in [`docs/ASSETS.md`](./docs/ASSETS.md).
