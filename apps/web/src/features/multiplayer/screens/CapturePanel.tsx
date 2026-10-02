@@ -143,8 +143,9 @@ export function CapturePanel({ code, token, room, fake, compact = false }: RoomS
           void submitRandom("Camera unavailable → random move");
         }}
       />
-      <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/80 to-transparent p-3 text-center">
+      <div className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/85 to-transparent p-3 text-center">
         <span className="arcade text-sm tracking-widest text-yellow-300 uppercase">Round {room.roundNumber} · strike a pose</span>
+        <p className="mt-1 text-[10px] font-bold tracking-widest text-white/70 uppercase">Full body in frame · freeze when it says POSE!</p>
       </div>
     </div>
   );

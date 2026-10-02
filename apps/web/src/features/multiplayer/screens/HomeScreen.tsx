@@ -76,7 +76,9 @@ export function HomeScreen() {
         </Title>
       </div>
 
-      <div className="flex w-full max-w-md flex-col gap-6">
+      <div className="flex w-full max-w-md flex-col gap-4">
+        <HowToPlay />
+
         <label className="flex flex-col gap-2">
           <Sub>nickname</Sub>
           <TextInput value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="SANTI" maxLength={12} autoCapitalize="characters" />
@@ -117,6 +119,23 @@ export function HomeScreen() {
 
       <p className="text-center text-[10px] tracking-widest text-white/30 uppercase">boxer · samurai · wizard</p>
     </Screen>
+  );
+}
+
+function HowToPlay() {
+  const steps = ["Create or join a room", "Pick your fighter", "Strike a pose on 3-2-1", "Reveal photos, then fight"];
+  return (
+    <div className="rounded-2xl border border-yellow-300/25 bg-black/35 p-4 shadow-[0_0_30px_rgba(250,204,21,0.08)]">
+      <Sub>how to play</Sub>
+      <ol className="mt-3 grid gap-2 text-sm font-bold tracking-wide text-white/80 uppercase">
+        {steps.map((step, i) => (
+          <li key={step} className="flex items-center gap-3">
+            <span className="arcade flex size-7 shrink-0 items-center justify-center rounded-full bg-yellow-300 text-lg text-black">{i + 1}</span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 

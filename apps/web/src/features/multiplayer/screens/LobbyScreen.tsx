@@ -129,6 +129,10 @@ export function LobbyScreen({ code, token, room }: RoomSession) {
 
         {me && <PoseGuide fighter={me.fighter} />}
 
+        <div className="rounded-2xl border border-yellow-300/20 bg-yellow-300/10 p-3 text-center text-xs font-bold tracking-widest text-yellow-100 uppercase">
+          When the round starts: stand back, fit your whole body in frame, and freeze your pose on 3-2-1.
+        </div>
+
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl border border-white/10 bg-black/40 p-4">
           <PlayerCard nickname={me?.nickname ?? "—"} fighter={me?.fighter ?? "BOXER"} present={!!me} ready={!!me?.ready} />
           <span className="arcade text-4xl text-rose-500 italic">VS</span>
