@@ -23,7 +23,7 @@ export function HomeScreen() {
   }, []);
 
   function nick() {
-    const n = nickname.trim().slice(0, 12).toUpperCase() || "FIGHTER";
+    const n = nickname.trim().slice(0, 12).toUpperCase() || "PLAYER 1";
     saveNickname(n);
     return n;
   }
@@ -81,7 +81,7 @@ export function HomeScreen() {
 
         <label className="flex flex-col gap-2">
           <Sub>nickname</Sub>
-          <TextInput value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="SANTI" maxLength={12} autoCapitalize="characters" />
+          <TextInput value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="PLAYER 1" maxLength={12} autoCapitalize="characters" />
         </label>
 
         <ArcadeButton big onClick={onQuickMatch} disabled={!token || busy}>

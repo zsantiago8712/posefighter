@@ -30,6 +30,7 @@
     "VERCEL_PROJECT_PRODUCTION_URL",
     "VERCEL_URL",
     "VITE_CONVEX_URL",
+    "DANGEROUSLY_DEPLOY_VULNERABLE_TANSTACK_START_XSS",
     "_VARLOCK_ENV_KEY"
   ],
   "globalDependencies": [".env*", "apps/*/.env*", "packages/*/.env*"]

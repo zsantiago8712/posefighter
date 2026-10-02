@@ -34,7 +34,8 @@ export function getOrCreatePlayerToken(): string {
 
 const NICK_KEY = "posefight.nickname";
 export function getSavedNickname(): string {
-  return window.localStorage.getItem(NICK_KEY) ?? "";
+  const nickname = window.localStorage.getItem(NICK_KEY) ?? "";
+  return nickname === "SANTI" ? "" : nickname;
 }
 export function saveNickname(n: string) {
   window.localStorage.setItem(NICK_KEY, n);
